@@ -31,6 +31,8 @@ const TORRENT_LABELS: [&str; 2] = ["label", "labelAnime"];
 
 const CATEGORY_SUFFIX: &str = "Category";
 
+const HANDLER_MINUTES: u32 = 5;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Slot {
     Nzb,
@@ -219,7 +221,7 @@ fn written(client: &DownloadClient) -> Result<(Slot, Value), Failure> {
         slot,
         json!({
             "clients": clients,
-            "postProcessing": { "downloadHandler": { "enabled": true } },
+            "postProcessing": { "downloadHandler": { "enabled": true, "frequency": HANDLER_MINUTES } },
         }),
     ))
 }

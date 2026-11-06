@@ -47,7 +47,7 @@ fn categories(value: &str) -> Value {
     })
 }
 
-const HANDLED: &str = r#"{ "downloadHandler": { "enabled": true } }"#;
+const HANDLED: &str = r#"{ "downloadHandler": { "enabled": true, "frequency": 5 } }"#;
 
 fn handled() -> Value {
     serde_json::from_str(HANDLED).unwrap_or_default()

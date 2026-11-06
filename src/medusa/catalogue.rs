@@ -88,12 +88,18 @@ struct SearchedEpisode {
     slug: String,
 }
 
+#[derive(Deserialize, Default)]
+struct SearchProgress {
+    #[serde(default)]
+    status: String,
+}
+
 #[derive(Deserialize)]
 struct Searching {
     #[serde(default)]
     episode: SearchedEpisode,
     #[serde(default)]
-    searchstatus: String,
+    search: SearchProgress,
 }
 
 #[derive(Deserialize)]
@@ -137,9 +143,9 @@ impl Medusa {
             let ours: Vec<&Searching> = searches
                 .results
                 .iter()
-                .filter(|one| one.episode.slug == episode)
+                .filter(|one| one.episode.slug.eq_ignore_ascii_case(episode))
                 .collect();
-            if !ours.is_empty() && ours.iter().all(|one| one.searchstatus == FINISHED) {
+            if !ours.is_empty() && ours.iter().all(|one| one.search.status == FINISHED) {
                 return Ok(true);
             }
         }
@@ -242,8 +248,14 @@ impl Catalogue for Medusa {
 impl Maintenance for Medusa {
     async fn search_upgrades(&self, kind: Kind) -> Result<(), Failure> {
         Self::filing(kind)?;
-        let response = self.ask(Method::Put, BACKLOG, None).await?;
-        self.endpoint.expect_success(&response)
+        for series in self.series().await? {
+            if series.config.paused {
+                continue;
+            }
+            self.done(Method::Put, BACKLOG, &json!({ "showSlug": series.id.slug }))
+                .await?;
+        }
+        Ok(())
     }
 
     async fn wanting(&self) -> Result<bool, Failure> {
