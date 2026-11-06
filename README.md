@@ -1,20 +1,22 @@
 # Medusa for lemonfiber
 
 **Watches for new episodes and fetches them.**
-Medusa is a curator of series.
+Medusa is a curator of series lemonfiber can run in place of Sonarr.
 Without it: Find and download episodes yourself.
 
 ## How lemonfiber carries it
 
-This repository holds Medusa's manifest and the adapter that speaks
+lemonfiber installs Medusa with the adapter this repository holds, which speaks
 lemonfiber's `indexer.pull` and `library.curate` contracts in front of Medusa: a
 Rust crate built on the core's adapter kit, into the image
 `ghcr.io/lemonfiber/medusa-adapter`, published from every commit on `main` and
-from each tag the release train cuts. The adapter tells Medusa which Prowlarr or
+from each tag the release train cuts. It tells Medusa which Prowlarr or
 NZBHydra2 to take its indexers from, and registers and reads its download
 clients, root folders, quality presets, series and what it has in flight.
-lemonfiber mints Medusa's key and the name and password of its own pages, and
-writes them into Medusa's settings before it first starts.
+lemonfiber reaches Medusa through this adapter alone. lemonfiber mints Medusa's
+key and the name and password of its own pages, writes them into Medusa's
+settings before it first starts, and writes them into the adapter's
+`upstream.json`.
 
 ## What is here
 
@@ -24,6 +26,8 @@ writes them into Medusa's settings before it first starts.
 | `config/medusa/` | Where Medusa's starting files go |
 | `recordings/medusa/` | The responses its proofs are held to |
 | `src/` | The adapter |
+| `conformance/indexer.pull@1/` | The adapter's answer to each conformance case, in front of the pinned Medusa |
+| `conformance/library.curate@1/` | The adapter's answer to each conformance case, in front of the pinned Medusa |
 | `Dockerfile` | The adapter's image |
 | `targets.toml` | The lemonfiber its checks run against, and the core the adapter is built on |
 | `proofs.json` | What those checks said, committed |

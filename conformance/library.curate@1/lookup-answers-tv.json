@@ -1,0 +1,10 @@
+{
+  "recorded_from": "lscr.io/linuxserver/medusa@sha256:aad89df58a047bab3521a695f0508f2e89fc9ba1f1196866dc8e9a810fc3ae5d",
+  "note": "A term looked up on TheTVDB with every connection out refused: nothing found.",
+  "request": {"method": "POST", "path": "/lemonfiber/library.curate/v1/lookup", "accept": "application/json"},
+  "response": {
+    "status": 200,
+    "headers": {"content-type": "application/json"},
+    "json": []
+  }
+}

@@ -15,7 +15,9 @@ the second curator of series, which stands in for Sonarr where `F14-R14` proves
 `library.curate` by a substitute. The adapter is the Rust crate at the root,
 built on `lemonfiber-adapter-kit` from the core at the commit `Cargo.toml` pins,
 into the image the `Dockerfile` builds. `release.yml` publishes that image from
-every commit on `main` and from the train's tag.
+every commit on `main` and from the train's tag. `plugin.toml` runs Medusa beside
+the adapter, `medusa-adapter`, which `fronts` it, and the conformance recordings
+under `conformance/` are the adapter's answers.
 
 The adapter asks Medusa's API v2, the one Medusa's own interface drives, with the
 key lemonfiber minted. Where that API has no answer, as for testing a download

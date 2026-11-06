@@ -1,0 +1,17 @@
+{
+  "recorded_from": "lscr.io/linuxserver/medusa@sha256:aad89df58a047bab3521a695f0508f2e89fc9ba1f1196866dc8e9a810fc3ae5d",
+  "note": "That client, by where it is reached and the category it files under.",
+  "request": {"method": "POST", "path": "/lemonfiber/library.curate/v1/download_clients", "accept": "application/json"},
+  "response": {
+    "status": 200,
+    "headers": {"content-type": "application/json"},
+    "json": [
+      {
+        "category": {"field": "category", "value": "conformance"},
+        "host": "conformance-download",
+        "id": "nzb",
+        "port": 8080
+      }
+    ]
+  }
+}

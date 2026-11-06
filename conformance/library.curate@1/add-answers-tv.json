@@ -1,0 +1,10 @@
+{
+  "recorded_from": "lscr.io/linuxserver/medusa@sha256:aad89df58a047bab3521a695f0508f2e89fc9ba1f1196866dc8e9a810fc3ae5d",
+  "note": "An add with no catalogue identifier: refused before Medusa is asked, since a series is added by its TheTVDB id.",
+  "request": {"method": "POST", "path": "/lemonfiber/library.curate/v1/add", "accept": "application/json"},
+  "response": {
+    "status": 500,
+    "headers": {"content-type": "application/problem+json"},
+    "json": {"detail": "a series is added by its TheTVDB id, and this entry names none", "type": "refused"}
+  }
+}

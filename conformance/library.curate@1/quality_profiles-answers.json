@@ -1,0 +1,19 @@
+{
+  "recorded_from": "lscr.io/linuxserver/medusa@sha256:aad89df58a047bab3521a695f0508f2e89fc9ba1f1196866dc8e9a810fc3ae5d",
+  "note": "The quality presets a fresh Medusa holds, each by its combined quality.",
+  "request": {"method": "POST", "path": "/lemonfiber/library.curate/v1/quality_profiles", "accept": "application/json"},
+  "response": {
+    "status": 200,
+    "headers": {"content-type": "application/json"},
+    "json": [
+      {"id": 65518, "name": "Any"},
+      {"id": 6, "name": "SD"},
+      {"id": 1000, "name": "HD"},
+      {"id": 328, "name": "HD720p"},
+      {"id": 672, "name": "HD1080p"},
+      {"id": 64512, "name": "UHD"},
+      {"id": 7168, "name": "UHD-4K"},
+      {"id": 57344, "name": "UHD-8K"}
+    ]
+  }
+}
