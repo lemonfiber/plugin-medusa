@@ -1,0 +1,54 @@
+[package]
+name = "medusa-adapter"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.95"
+repository = "https://github.com/lemonfiber/plugin-medusa"
+authors = ["NightWorks.io"]
+license-file = "LICENSE"
+description = "Speaks lemonfiber's indexer.pull and library.curate contracts in front of Medusa"
+publish = false
+
+[[bin]]
+name = "medusa-adapter"
+path = "src/main.rs"
+
+[dependencies]
+async-trait = "0.1"
+lemonfiber-adapter-kit = { git = "https://github.com/lemonfiber/lemonfiber", rev = "abd7d75f6b2627327b6935f5322f696016413234" }
+lemonfiber-contract = { git = "https://github.com/lemonfiber/lemonfiber", rev = "abd7d75f6b2627327b6935f5322f696016413234" }
+lemonfiber-error = { git = "https://github.com/lemonfiber/lemonfiber", rev = "abd7d75f6b2627327b6935f5322f696016413234" }
+lemonfiber-ports = { git = "https://github.com/lemonfiber/lemonfiber", rev = "abd7d75f6b2627327b6935f5322f696016413234" }
+reqwest = { version = "0.13", default-features = false }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["fs", "macros", "net", "rt-multi-thread", "signal", "time"] }
+
+[dev-dependencies]
+axum = { version = "0.8", default-features = false, features = ["http1", "tokio", "json"] }
+tower = { version = "0.5", default-features = false, features = ["util"] }
+lemonfiber-fixtures = { git = "https://github.com/lemonfiber/lemonfiber", rev = "abd7d75f6b2627327b6935f5322f696016413234" }
+lemonfiber-plugin = { git = "https://github.com/lemonfiber/lemonfiber", rev = "abd7d75f6b2627327b6935f5322f696016413234" }
+toml = "1.1"
+
+[lints.rust]
+unsafe_code = "forbid"
+missing_docs = "deny"
+
+[lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+indexing_slicing = "deny"
+todo = "deny"
+unimplemented = "deny"
+pedantic = { level = "warn", priority = -1 }
+duration_suboptimal_units = "allow"
+
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = "symbols"

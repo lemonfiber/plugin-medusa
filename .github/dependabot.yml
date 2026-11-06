@@ -1,0 +1,59 @@
+# Not configured here, deliberately:
+#
+#   The recorded responses in `recordings/` and `conformance/` are a recording
+#   of another project's HTTP replies, not a dependency. Nothing resolves them
+#   and nothing has a version to bump.
+#
+#   The image `plugin.toml` names is pinned by digest and is not a dependency
+#   either — moving it is an author's decision about what this plugin installs
+#   on somebody's machine, made with the proofs re-recorded against the new
+#   image. A bot that moved it would be changing what runs, unreviewed.
+#
+# So this covers what is: the adapter's crates, the images its Dockerfile builds
+# from, and the actions and reusable workflows CI runs. The core's crates are
+# pinned to the commit the release train moves, never by this updater.
+version: 2
+updates:
+  - package-ecosystem: cargo
+    directory: "/"
+    schedule:
+      interval: weekly
+    labels: ["dependencies"]
+    commit-message:
+      prefix: chore
+      include: scope
+    ignore:
+      - dependency-name: "lemonfiber-*"
+    groups:
+      crates:
+        patterns: ["*"]
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly
+      time: "05:00"
+      timezone: Europe/Amsterdam
+    labels: ["dependencies"]
+    commit-message:
+      prefix: chore
+      include: scope
+    cooldown:
+      default-days: 3
+      exclude: ["lemonfiber/spec*"]
+    groups:
+      shared-workflows:
+        patterns: ["lemonfiber/spec*"]
+      actions:
+        patterns: ["*"]
+        exclude-patterns: ["lemonfiber/spec*"]
+  - package-ecosystem: docker
+    directory: "/"
+    schedule:
+      interval: weekly
+    labels: ["dependencies"]
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      images:
+        patterns: ["*"]

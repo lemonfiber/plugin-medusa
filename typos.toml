@@ -1,0 +1,14 @@
+[default]
+# Ignore hotkey mockup notation like [e]rror, [s]ervice in TUI examples.
+# A commit hash is hexadecimal, and its letters are not words.
+extend-ignore-re = ["\\[[a-z]\\][a-zA-Z]+", "\\b[0-9a-f]*[0-9][0-9a-f]*\\b"]
+
+[default.extend-words]
+ratatui = "ratatui"
+Ratatui = "Ratatui"
+lemonfiber = "lemonfiber"
+Servarr = "Servarr"
+# The upstream project and its author, as the registry and the forge spell them.
+komga = "komga"
+Komga = "Komga"
+gotson = "gotson"

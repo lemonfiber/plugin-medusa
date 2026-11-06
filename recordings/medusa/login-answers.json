@@ -1,0 +1,10 @@
+{
+  "recorded_from": "lscr.io/linuxserver/medusa@sha256:aad89df58a047bab3521a695f0508f2e89fc9ba1f1196866dc8e9a810fc3ae5d",
+  "note": "Its sign-in page, asked for presenting nothing, on a fresh instance started from the settings lemonfiber writes. An answer is the pass: the adapter's readiness is this answer, which needs no key.",
+  "request": {"method": "GET", "path": "/login/"},
+  "response": {
+    "status": 200,
+    "headers": {"content-type": "text/html; charset=UTF-8"},
+    "body_starts_with": "\n<!DOCTYPE html>\n<html>\n\n<head>\n    <meta charset=\"utf-8\">\n    <meta name=\"robots\" content=\"noindex, nofollow\">\n    <meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <meta name=\"theme-color\" content=\"#333333\">\n    <title>Medusa</title>\n    <base href=\"http://127.0.0.1:8081/\">\n    \n        <link rel=\"shortcut icon\" href=\"images/ico/favicon.ico?v=2\">\n        <link rel=\"icon\" sizes=\"16x16 32x32 64x64\" href=\"images/ico/favicon.ico\">\n        <link rel=\"icon\" type=\"image/png\" sizes=\"196x196\" href=\"images/ico/favicon-196.png\">\n        <link rel=\"icon\" type=\"image/png\" sizes=\"160x160\" href=\"images/ico/favicon-160.png\">\n        <link rel=\"icon\" type=\"image/png\" sizes=\"96x96\" href=\"images/ico/favicon-96.png\">\n        <link rel=\"icon\" type=\"image/png\" sizes=\"64x64\" href=\"images/ico/favicon-64.png\">\n        <link rel=\"icon\" type=\"image/png\" sizes=\"32x32\" href=\"images/ico/favicon-32.png\">\n        <link rel=\"icon\" type=\"image/png\" sizes=\"16x"
+  }
+}

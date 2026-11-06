@@ -1,0 +1,8 @@
+.DS_Store
+.planning/
+__pycache__/
+*.py[cod]
+.lemonfiber/
+.github/reader/
+/target/
+lcov.info

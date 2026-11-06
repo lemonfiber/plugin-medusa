@@ -1,0 +1,50 @@
+# The plugin verdict on Medusa, from spec's first-party-plugin workflow (F3-R9, F5-R13),
+# and every recording taken again by lemonfiber against the pinned Medusa (ARCH-R217).
+name: plugin
+on: [pull_request]
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: true
+jobs:
+  plugin:
+    uses: lemonfiber/spec/.github/workflows/first-party-plugin.yml@8894900e86414b166ccd35f272b836d2e0d1b2c2 # v1.0.137
+
+  # Every recording, proof and conformance case alike, is what lemonfiber takes
+  # again now. lemonfiber at the commit `targets.toml` names records this plugin
+  # against a throwaway Medusa at the digest it pins, with the adapter built
+  # from this tree in place of the adapter's pin, and fails where a recording
+  # differs, is missing, or answers no case (ARCH-R217, ARCH-R321). The adapter
+  # is built before lemonfiber is checked out beneath `.lemonfiber/`, which the
+  # image's build context leaves out.
+  recordings:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: The adapter, built from this tree
+        run: docker build -q -t plugin-medusa:pr .
+      - name: The upstream images plugin.toml pins
+        run: |
+          python3 -c 'import tomllib; print("\n".join(s["image"] + "@" + s["digest"] for s in tomllib.load(open("plugin.toml", "rb"))["service"] if "fronts" not in s))' | xargs -n1 docker pull -q
+      - name: The lemonfiber targets.toml names
+        id: core
+        run: python3 -c 'import tomllib; print("commit=" + tomllib.load(open("targets.toml", "rb"))["commit"])' >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: lemonfiber/lemonfiber
+          ref: ${{ steps.core.outputs.commit }}
+          path: .lemonfiber/core
+          persist-credentials: false
+          submodules: recursive
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          workspaces: .lemonfiber/core
+      - name: lemonfiber, built at that commit
+        working-directory: .lemonfiber/core
+        run: cargo build --locked --release -p lemonfiber
+      - name: Every recording, taken again with the adapter built from this tree
+        run: .lemonfiber/core/target/release/lemonfiber plugin record . --check --adapter plugin-medusa:pr

@@ -1,0 +1,103 @@
+#:schema https://raw.githubusercontent.com/lemonfiber/lemonfiber/abd7d75f6b2627327b6935f5322f696016413234/contract/plugin-manifest.schema.json
+schema_version = 1
+
+[plugin]
+id          = "medusa"
+name        = "Medusa"
+version     = "0.1.0"
+description = "Watches for new episodes and fetches them"
+without_it  = "Find and download episodes yourself"
+upstream    = "https://github.com/pymedusa/Medusa"
+license     = "GPL-3.0-only"
+forms       = ["tv", "auto", "full"]
+
+[[service]]
+id          = "medusa"
+name        = "Medusa"
+image       = "lscr.io/linuxserver/medusa"
+digest      = "sha256:aad89df58a047bab3521a695f0508f2e89fc9ba1f1196866dc8e9a810fc3ae5d"
+tag         = "v1.0.27-ls297"
+port        = 8086
+bind        = "loopback"
+listens     = 8081
+health      = { kind = "http", path = "/login/", timeout_s = 90 }
+criticality = "core"
+memory_mib  = 300
+reaches     = "television metadata providers"
+asks_for    = "Reads series, season and episode information, artwork and air dates for what is in your library and what you add to it."
+takes_data  = true
+user_mode   = "puid-env"
+media_types = ["tv"]
+
+[[secret]]
+id     = "upstream-key"
+of     = "medusa"
+minted = true
+why    = "The key Medusa answers its API to, which the adapter in front of it presents"
+carried_from = { file = "/config/config.ini", format = "ini", key = "General.api_key" }
+
+[[secret]]
+id     = "web-username"
+of     = "medusa"
+minted = true
+why    = "The name Medusa's own pages answer to, which the adapter signs in as to have Medusa test its download clients"
+carried_from = { file = "/config/config.ini", format = "ini", key = "General.web_username" }
+
+[[secret]]
+id     = "web-password"
+of     = "medusa"
+minted = "password"
+why    = "The password Medusa's own pages answer to, which the adapter signs in with to have Medusa test its download clients"
+carried_from = { file = "/config/config.ini", format = "ini", key = "General.web_password" }
+
+[[proof]]
+id      = "medusa.answers"
+service = "medusa"
+title   = "Medusa shows its sign-in page to anybody"
+fixture = "recordings/medusa/login-answers.json"
+why     = """
+The adapter's readiness is this answer, which it asks without a key, so the
+pinned image has to give it to a caller presenting nothing.
+"""
+request = { method = "GET", path = "/login/" }
+expect  = { status = 200, body_starts_with = "\n<!DOCTYPE html>" }
+
+[[proof]]
+id      = "medusa.guarded"
+service = "medusa"
+title   = "Medusa shows its settings to nobody presenting nothing"
+fixture = "recordings/medusa/settings-guarded.json"
+why     = """
+Medusa's settings hold the keys and passwords of every download client and
+indexer it was given. Only the adapter asks, with the key lemonfiber minted, so
+a Medusa that answered them to a caller presenting nothing would be telling
+every device that can reach it.
+"""
+request = { method = "GET", path = "/api/v2/config/main" }
+expect  = { status = 401, json = { error = "No authorization token." } }
+
+[[proof]]
+id      = "medusa.keeps-its-key"
+service = "medusa"
+title   = "Medusa hands its key to nobody presenting nothing"
+fixture = "recordings/medusa/key-kept.json"
+why     = """
+A Medusa with no account on its own pages hands its API key to anybody who asks
+for it. lemonfiber writes the account it minted into Medusa's settings before
+Medusa first starts, so the pinned image, started from those settings, has to
+refuse the key to a caller presenting nothing.
+"""
+request = { method = "GET", path = "/getkey/" }
+expect  = { status = 200, json = { success = false } }
+
+[[ask]]
+service    = "medusa"
+capability = "download.usenet"
+
+[[ask]]
+service    = "medusa"
+capability = "download.torrent"
+
+[[ask]]
+service    = "medusa"
+capability = "indexer.search"
