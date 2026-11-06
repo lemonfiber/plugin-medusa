@@ -28,6 +28,24 @@ asks_for    = "Reads series, season and episode information, artwork and air dat
 takes_data  = true
 user_mode   = "puid-env"
 media_types = ["tv"]
+native      = "medusa"
+
+[[service]]
+id          = "medusa-adapter"
+name        = "Medusa adapter"
+image       = "ghcr.io/lemonfiber/medusa-adapter"
+digest      = "sha256:7c6a43c53ea4e54e871e09c6868c59d34737f8fafcd47307cd9d47190d7ba576"
+tag         = "main-b0a9fb0736b9"
+criticality = "core"
+reaches     = ""
+asks_for    = "Nothing beyond this machine. It answers lemonfiber's indexer.pull and library.curate contracts by calling Medusa, beside it, with the key and the account lemonfiber minted for it."
+config_path = "/config"
+listens     = 8080
+media_types = ["tv"]
+speaks      = ["indexer.pull@1", "library.curate@1"]
+fronts      = "medusa"
+provides    = ["library.curate"]
+upstream    = { api_key = { secret = "upstream-key" }, username = { secret = "web-username" }, password = { secret = "web-password" } }
 
 [[secret]]
 id     = "upstream-key"

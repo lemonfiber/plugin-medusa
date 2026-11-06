@@ -1,0 +1,10 @@
+{
+  "recorded_from": "lscr.io/linuxserver/medusa@sha256:aad89df58a047bab3521a695f0508f2e89fc9ba1f1196866dc8e9a810fc3ae5d",
+  "note": "A carried series whose record is empty: refused before Medusa is asked, for want of a TheTVDB id.",
+  "request": {"method": "POST", "path": "/lemonfiber/library.curate/v1/carry", "accept": "application/json"},
+  "response": {
+    "status": 500,
+    "headers": {"content-type": "application/problem+json"},
+    "json": {"detail": "conformance carries no TheTVDB id to follow it by", "type": "refused"}
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "recorded_from": "lscr.io/linuxserver/medusa@sha256:aad89df58a047bab3521a695f0508f2e89fc9ba1f1196866dc8e9a810fc3ae5d",
+  "note": "That client tested by Medusa itself, signed in to its own pages: the stand-in answers no question Medusa asks before it tests a key, so Medusa says it could not test it.",
+  "request": {"method": "POST", "path": "/lemonfiber/library.curate/v1/test_download_clients", "accept": "application/json"},
+  "response": {
+    "status": 200,
+    "headers": {"content-type": "application/json"},
+    "json": [
+      {"detail": "Error while testing connection. Check warning logs.", "id": "nzb", "reachable": false}
+    ]
+  }
+}
