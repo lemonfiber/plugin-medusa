@@ -1,0 +1,16 @@
+# What this repository implements, one row per requirement (OPS-R74).
+#
+# `done` means the requirement is met in full by what is here, `partial` that this
+# repository holds its part and the rest lives elsewhere, `open` that nothing here
+# meets it yet. The release gate and the no-stubs gate read this file; a pull
+# request that changes whether a requirement is met changes its row.
+#
+# Writing the adapter's key and its upstream's credential, running it as the operator,
+# and running the substitute proof end to end are the core's.
+
+requirement = [
+  { id = "F14-R14", state = "partial", evidence = ["plugin.toml", "src/medusa.rs"] },
+  { id = "F14-R15", state = "partial", evidence = ["Cargo.toml", "Dockerfile", ".github/workflows/release.yml"] },
+  { id = "F14-R27", state = "partial", evidence = ["Dockerfile", ".github/workflows/adapter.yml"] },
+  { id = "F14-R28", state = "partial", evidence = ["src/main.rs", "src/adapter.rs"] },
+]

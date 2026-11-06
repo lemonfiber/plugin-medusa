@@ -1,0 +1,10 @@
+{
+  "recorded_from": "lscr.io/linuxserver/medusa@sha256:aad89df58a047bab3521a695f0508f2e89fc9ba1f1196866dc8e9a810fc3ae5d",
+  "note": "Its API key, asked for presenting nothing, on a fresh instance started from the settings lemonfiber writes. No key is the pass: a Medusa with no account on its own pages hands its key to anybody, so the account lemonfiber minted has to be in force from its first start.",
+  "request": {"method": "GET", "path": "/getkey/"},
+  "response": {
+    "status": 200,
+    "headers": {"content-type": "application/json; charset=UTF-8"},
+    "json": {"api_key": null, "success": false}
+  }
+}

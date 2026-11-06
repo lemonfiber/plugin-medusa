@@ -1,0 +1,47 @@
+# CodeQL static analysis of the Rust crate and the workflows (Q-R53).
+name: codeql
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "41 6 * * 2"
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: true
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [actions, rust]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v3
+        with:
+          languages: ${{ matrix.language }}
+      - uses: github/codeql-action/autobuild@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v3
+        if: matrix.language == 'rust'
+      - uses: github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v3
+        with:
+          category: "/language:${{ matrix.language }}"
+
+  # Runs after a failed analysis too: the gate refuses a commit it has no
+  # analysis of, where a skipped required check would pass.
+  alerts:
+    needs: analyze
+    if: ${{ !cancelled() }}
+    permissions:
+      contents: read
+      security-events: read
+    uses: lemonfiber/spec/.github/workflows/codeql-alerts.yml@8894900e86414b166ccd35f272b836d2e0d1b2c2 # v1.0.137
+    with:
+      analysis: ${{ needs.analyze.result }}

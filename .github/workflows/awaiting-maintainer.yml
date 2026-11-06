@@ -1,0 +1,32 @@
+# The maintainer queue flag (OPS-R26, OPS-R27). The reusable reads the
+# workflow list below back out of this file as its wait list, so every workflow
+# a check `main` requires comes from is named in it. The checks `main` requires:
+#
+#   gates     gates / gates
+#   pin-only  pin-only / pin-only
+#   plugin    plugin / what changed, plugin / plugin, recordings
+#   rust      fmt, clippy, test, coverage, deny, msrv
+#   adapter   adapter-image
+#   codeql    analyze (actions), analyze (rust), alerts / alerts
+#   sonar     gate / gate
+#
+# Add a workflow to branch protection and it belongs here in the same change.
+name: awaiting-maintainer
+on:
+  workflow_run:
+    workflows: [gates, pin-only, plugin, rust, adapter, codeql, sonar]
+    types: [completed]
+  pull_request_review:
+    types: [submitted]
+  pull_request_target:
+    types: [closed]
+permissions:
+  contents: read
+jobs:
+  awaiting:
+    permissions:
+      contents: read
+      pull-requests: write
+    uses: lemonfiber/spec/.github/workflows/awaiting-maintainer.yml@8894900e86414b166ccd35f272b836d2e0d1b2c2 # v1.0.137
+    secrets:
+      DISCORD_MAINTAINERS_WEBHOOK: ${{ secrets.DISCORD_MAINTAINERS_WEBHOOK }}

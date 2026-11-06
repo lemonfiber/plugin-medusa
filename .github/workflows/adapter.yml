@@ -1,0 +1,57 @@
+# The adapter's image builds, runs as lemonfiber runs it (the operator's uid, the
+# key owner-only, read-only, no capabilities) and answers its own health check
+# under the plugin's key; run as its own user, it cannot read the key. Nothing is pushed: a signed
+# tag is the only thing that publishes (release.yml).
+name: adapter
+on: [pull_request]
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  adapter-image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build
+        run: docker build -t medusa-adapter:check .
+      - name: Runs as the operator's uid, read-only, with no capabilities, and answers its health
+        run: |
+          set -euo pipefail
+          configuration="$(mktemp -d)"
+          head -c 24 /dev/urandom | od -An -tx1 | tr -d ' \n' > "$configuration/lemonfiber.key"
+          chmod 700 "$configuration"
+          chmod 600 "$configuration/lemonfiber.key"
+          echo "configuration=$configuration" >> "$GITHUB_ENV"
+          docker run -d --name adapter-check --user "$(id -u):$(id -g)" --read-only \
+            --cap-drop ALL --security-opt no-new-privileges \
+            -v "$configuration:/config:ro" medusa-adapter:check
+          for _ in $(seq 1 20); do
+            if docker exec adapter-check /medusa-adapter health; then
+              docker rm -f adapter-check >/dev/null
+              exit 0
+            fi
+            sleep 1
+          done
+          docker logs adapter-check
+          echo "::error::the image did not answer its own health check"
+          exit 1
+      - name: Run as the image's own user, it cannot read the key and does not start
+        run: |
+          set -uo pipefail
+          status=0
+          said="$(docker run --name adapter-unkeyed --read-only --cap-drop ALL \
+            --security-opt no-new-privileges -v "$configuration:/config:ro" \
+            medusa-adapter:check 2>&1)" || status=$?
+          docker rm -f adapter-unkeyed >/dev/null
+          echo "$said"
+          if [ "$status" -eq 0 ] || [[ "$said" != *"the plugin's key could not be read"* ]]; then
+            echo "::error::the image started without being able to read the plugin's key as its own user"
+            exit 1
+          fi

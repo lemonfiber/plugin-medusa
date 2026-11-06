@@ -1,0 +1,24 @@
+{
+  "lemonfiber": "abd7d75f6b2627327b6935f5322f696016413234",
+  "against": "recordings",
+  "proofs": [
+    {
+      "id": "medusa.answers",
+      "kind": "proof",
+      "outcome": "passed",
+      "detail": ""
+    },
+    {
+      "id": "medusa.guarded",
+      "kind": "proof",
+      "outcome": "passed",
+      "detail": ""
+    },
+    {
+      "id": "medusa.keeps-its-key",
+      "kind": "proof",
+      "outcome": "passed",
+      "detail": ""
+    }
+  ]
+}
