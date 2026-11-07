@@ -1,4 +1,4 @@
-#:schema https://raw.githubusercontent.com/lemonfiber/lemonfiber/abd7d75f6b2627327b6935f5322f696016413234/contract/plugin-manifest.schema.json
+#:schema https://raw.githubusercontent.com/lemonfiber/lemonfiber/bf525eadbff0d58952f8e3b5013ef360a9d000ee/contract/plugin-manifest.schema.json
 schema_version = 1
 
 [plugin]
@@ -46,6 +46,9 @@ speaks      = ["indexer.pull@1", "library.curate@1"]
 fronts      = "medusa"
 provides    = ["library.curate"]
 upstream    = { api_key = { secret = "upstream-key" }, username = { secret = "web-username" }, password = { secret = "web-password" } }
+
+[service.env]
+IMPORT_STUCK_AFTER_MINUTES = { setting = "medusa:import-stuck-after", default = "60" }
 
 [[secret]]
 id     = "upstream-key"

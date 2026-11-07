@@ -26,6 +26,42 @@ lemonfiber mints the name and password of Medusa's own pages.
 `lemonfiber credentials --reveal medusa:web-username` and
 `--reveal medusa:web-password` print them, asking first.
 
+## Requests
+
+The request gate asks this adapter for a household's requests under a key the
+core writes for it as `request.key` beside the adapter's own. That key opens the
+request operations of `library.curate` and `quality_profiles`, `root_folders` and
+`lookup`, and nothing else. Medusa looks up a series it does not hold by name
+alone, never by its TheTVDB id, so `catalogued` answers only the series Medusa
+holds. A household's request therefore reaches Medusa only for a series it
+already holds; one it does not hold has to be added in Medusa's own pages first.
+
+## Settings
+
+| Setting | Default | What it decides |
+| --- | --- | --- |
+| `medusa:import-stuck-after` | `60` | The minutes a finished download may wait for Medusa to import it before the adapter reports it stuck. `0` reports none |
+
+`lemonfiber config set medusa:import-stuck-after <minutes>` changes it. A stuck
+download is one `lemonfiber stuck` names, and `downloading` answers it as a
+warning. The clock starts when the adapter first reads the download as finished,
+and starts again when the adapter restarts. A shorter wait names a stuck import
+sooner, and may name one a slow disk or a long unpack was about to finish; a
+longer one leaves a download Medusa will never import waiting longer before it
+is named. The default is twelve passes of Medusa's download handler, which the
+adapter runs every five minutes: every import the rig saw began in the same pass
+that read its client as finished.
+
+## What Medusa cannot do
+
+- **A qBittorrent torrent holding one file inside a folder never imports.**
+  qBittorrent names that file as the torrent's content, Medusa looks for it in the
+  save folder itself, and the import waits until it is reported stuck. A single
+  file, a folder of several files, and every shape on Transmission and Deluge
+  import.
+- **Medusa keeps no download's progress.** `downloading` answers what is left as
+  the whole size until the client finishes, and no expected completion.
+
 ## What is here
 
 | Path | What it is |
