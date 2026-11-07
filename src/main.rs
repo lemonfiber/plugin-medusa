@@ -8,6 +8,7 @@ use lemonfiber_adapter_kit::settings::{asked, Asked, Settings};
 use lemonfiber_adapter_kit::web::Web;
 use lemonfiber_contract::adapter::{about_path, UPSTREAM_PASSWORD, UPSTREAM_USERNAME};
 use medusa_adapter::medusa::Medusa;
+use medusa_adapter::thetvdb::TheTvdb;
 
 #[tokio::main]
 async fn main() -> ExitCode {
@@ -36,9 +37,22 @@ async fn serve(settings: &Settings) -> Result<(), String> {
             .ok()
             .as_deref(),
     )?;
-    let web = Web::new().map_err(|why| format!("no HTTP client could be made: {why}"))?;
+    let env = |name: &str| std::env::var(name).ok();
+    let sign_in = medusa_adapter::adapter::thetvdb(
+        env(medusa_adapter::adapter::THETVDB_LOOKUP).as_deref(),
+        env(medusa_adapter::adapter::THETVDB_KEY).as_deref(),
+        env(medusa_adapter::adapter::THETVDB_PIN).as_deref(),
+    )?;
+    let web = Arc::new(Web::new().map_err(|why| format!("no HTTP client could be made: {why}"))?);
+    let lookup = sign_in.map(|sign_in| {
+        Arc::new(TheTvdb::new(
+            Arc::clone(&web) as Arc<dyn lemonfiber_ports::http::Http>,
+            medusa_adapter::thetvdb::ADDRESS,
+            sign_in,
+        ))
+    });
     let medusa = Medusa::new(
-        Arc::new(web),
+        web,
         settings.upstream.clone(),
         Arc::new(Upstream::in_directory(
             &settings.configuration,
@@ -53,7 +67,8 @@ async fn serve(settings: &Settings) -> Result<(), String> {
             UPSTREAM_PASSWORD,
         )),
     )
-    .waiting_on_imports(patience);
+    .waiting_on_imports(patience)
+    .looking_up(lookup);
     let listener = tokio::net::TcpListener::bind(&settings.listen)
         .await
         .map_err(|why| format!("{} could not be listened on: {why}", settings.listen))?;

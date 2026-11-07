@@ -101,6 +101,16 @@ impl Medusa {
             .find(|one| one.tvdb() == Some(tvdb)))
     }
 
+    async fn held_as(&self, tvdb: i64) -> Result<Option<CuratedTitle>, Failure> {
+        if tvdb <= 0 {
+            return Ok(None);
+        }
+        match self.followed_as(tvdb).await? {
+            Some(series) => Ok(Some(self.curated_from(&series, tvdb).await?)),
+            None => Ok(None),
+        }
+    }
+
     async fn held_series(&self, tvdb: i64) -> Result<Series, Failure> {
         self.followed_as(tvdb).await?.ok_or_else(|| {
             self.endpoint
@@ -244,12 +254,12 @@ impl Fulfilling for Medusa {
         reference: i64,
     ) -> Result<Option<CuratedTitle>, Failure> {
         Self::filing(kind)?;
-        if reference <= 0 {
-            return Ok(None);
+        if let Some(held) = self.held_as(reference).await? {
+            return Ok(Some(held));
         }
-        match self.followed_as(reference).await? {
-            Some(series) => Ok(Some(self.curated_from(&series, reference).await?)),
-            None => Ok(None),
+        match &self.lookup {
+            Some(lookup) if reference > 0 => lookup.series(reference).await,
+            _ => Ok(None),
         }
     }
 
@@ -265,7 +275,8 @@ impl Fulfilling for Medusa {
     }
 
     async fn held_title(&self, kind: Kind, id: i64) -> Result<Option<CuratedTitle>, Failure> {
-        self.catalogued(kind, id).await
+        Self::filing(kind)?;
+        self.held_as(id).await
     }
 
     async fn request(&self, kind: Kind, request: &TitleRequest) -> Result<CuratedTitle, Failure> {

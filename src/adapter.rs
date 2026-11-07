@@ -9,12 +9,31 @@ use lemonfiber_contract::adapter::{About, Release};
 use lemonfiber_contract::capabilities::{indexer, library};
 
 use crate::medusa::{Medusa, IMPORT_PATIENCE};
+use crate::thetvdb::SignIn;
 
 /// The variable of the adapter's environment holding how many minutes an import may wait
 /// before it is reported stuck, `0` reporting none.
 pub const IMPORT_STUCK_AFTER: &str = "IMPORT_STUCK_AFTER_MINUTES";
 
 const MINUTE: u64 = 60;
+
+/// The variable of the adapter's environment saying whether TheTVDB is asked for a series
+/// Medusa does not hold: `off`, `on` under a key, or `on-with-pin` under a key and a
+/// subscriber PIN.
+pub const THETVDB_LOOKUP: &str = "THETVDB_LOOKUP";
+
+/// The variable of the adapter's environment holding the operator's TheTVDB key.
+pub const THETVDB_KEY: &str = "THETVDB_KEY";
+
+/// The variable of the adapter's environment holding the operator's TheTVDB subscriber
+/// PIN.
+pub const THETVDB_PIN: &str = "THETVDB_PIN";
+
+const LOOKUP_OFF: &str = "off";
+
+const LOOKUP_ON: &str = "on";
+
+const LOOKUP_ON_WITH_PIN: &str = "on-with-pin";
 
 /// Where Medusa answers, by its service id and the port it listens on.
 pub const ADDRESS: &str = "http://medusa:8081";
@@ -61,6 +80,41 @@ pub fn patience(minutes: Option<&str>) -> Result<Option<Duration>, String> {
         format!("{IMPORT_STUCK_AFTER} is {minutes:?}, not a whole number of minutes")
     })?;
     Ok((minutes > 0).then(|| Duration::from_secs(minutes.saturating_mul(MINUTE))))
+}
+
+/// How TheTVDB is signed in to, as `lookup`, `key` and `pin` say, or nothing where the
+/// lookup is off, which it is where `lookup` says nothing.
+///
+/// # Errors
+///
+/// Where `lookup` names no state the setting takes, or the lookup is on and the key, or
+/// the PIN it is on with, is missing.
+pub fn thetvdb(
+    lookup: Option<&str>,
+    key: Option<&str>,
+    pin: Option<&str>,
+) -> Result<Option<SignIn>, String> {
+    let given = |value: Option<&str>, named: &str| {
+        value
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(str::to_owned)
+            .ok_or_else(|| format!("{THETVDB_LOOKUP} is on, and {named} holds nothing"))
+    };
+    match lookup.map_or(LOOKUP_OFF, str::trim) {
+        LOOKUP_OFF => Ok(None),
+        LOOKUP_ON => Ok(Some(SignIn {
+            key: given(key, THETVDB_KEY)?,
+            pin: None,
+        })),
+        LOOKUP_ON_WITH_PIN => Ok(Some(SignIn {
+            key: given(key, THETVDB_KEY)?,
+            pin: Some(given(pin, THETVDB_PIN)?),
+        })),
+        other => Err(format!(
+            "{THETVDB_LOOKUP} is {other:?}, not {LOOKUP_OFF}, {LOOKUP_ON} or {LOOKUP_ON_WITH_PIN}"
+        )),
+    }
 }
 
 /// The contracts, served from `medusa` under `key`, ready while Medusa answers, and

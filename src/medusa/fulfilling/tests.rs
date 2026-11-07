@@ -530,3 +530,80 @@ async fn nothing_downloading_asks_for_no_series() {
     );
     assert_eq!(asked(&fake).len(), 1);
 }
+
+fn looking_up(fake: &std::sync::Arc<Fake>) -> crate::medusa::Medusa {
+    medusa(fake).looking_up(Some(std::sync::Arc::new(crate::thetvdb::TheTvdb::new(
+        fake.clone(),
+        "https://api4.thetvdb.com/v4",
+        crate::thetvdb::SignIn {
+            key: "operator-key".to_owned(),
+            pin: None,
+        },
+    ))))
+}
+
+fn thetvdb_knowing(series: &[Value]) -> std::sync::Arc<Fake> {
+    Fake::by_route_in_turn(vec![
+        (
+            Method::Post,
+            "/login",
+            vec![json(200, &json!({ "data": { "token": "t" } }))],
+        ),
+        (
+            Method::Get,
+            "/series/81189/episodes/default",
+            vec![json(
+                200,
+                &json!({ "data": { "series": { "name": "Breaking Bad", "year": "2008" }, "episodes": [{ "seasonNumber": 1 }] } }),
+            )],
+        ),
+        (Method::Get, "/episodes", vec![json(200, &episodes())]),
+        (
+            Method::Get,
+            "/series?",
+            vec![json(200, &Value::Array(series.to_vec()))],
+        ),
+    ])
+}
+
+#[tokio::test]
+async fn with_the_lookup_on_a_series_it_does_not_hold_is_catalogued_from_thetvdb() {
+    let fake = thetvdb_knowing(&[]);
+    assert_eq!(
+        looking_up(&fake).catalogued(Kind::Tv, BAD).await.ok(),
+        Some(Some(CuratedTitle {
+            reference: BAD,
+            id: None,
+            title: "Breaking Bad".to_owned(),
+            year: Some(2008),
+            monitored: false,
+            files: 0,
+            seasons: vec![CuratedSeason {
+                number: 1,
+                monitored: false,
+                files: 0,
+                episodes: 1
+            }],
+        }))
+    );
+}
+
+#[tokio::test]
+async fn with_the_lookup_on_a_series_it_holds_is_answered_from_medusa_alone() {
+    let fake = thetvdb_knowing(&[fawlty(false, "Wanted")]);
+    let medusa = looking_up(&fake);
+    assert_eq!(
+        medusa
+            .catalogued(Kind::Tv, FAWLTY)
+            .await
+            .ok()
+            .flatten()
+            .map(|title| title.id),
+        Some(Some(FAWLTY))
+    );
+    assert_eq!(medusa.held_title(Kind::Tv, BAD).await.ok(), Some(None));
+    assert_eq!(medusa.catalogued(Kind::Tv, 0).await.ok(), Some(None));
+    assert!(!asked(&fake)
+        .iter()
+        .any(|(_, url, _)| url.contains("thetvdb")));
+}
