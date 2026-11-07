@@ -6,8 +6,11 @@ use lemonfiber_contract::adapter::{about_path, ready_path, About};
 use lemonfiber_fixtures::http::{Answer, Fake};
 use tower::ServiceExt as _;
 
-use super::{about, kit, patience, ADDRESS, DIGEST, IMPORT_STUCK_AFTER, RELEASE, UPSTREAM};
+use super::{
+    about, kit, patience, thetvdb, ADDRESS, DIGEST, IMPORT_STUCK_AFTER, RELEASE, UPSTREAM,
+};
 use crate::medusa::{Medusa, IMPORT_PATIENCE};
+use crate::thetvdb::SignIn;
 
 fn a_key() -> String {
     ('e'..='t').collect()
@@ -248,5 +251,37 @@ fn an_import_waits_an_hour_unless_told_otherwise_and_never_where_told_none() {
         Err(format!(
             "{IMPORT_STUCK_AFTER} is \"soon\", not a whole number of minutes"
         ))
+    );
+}
+
+#[test]
+fn the_thetvdb_lookup_is_off_unless_switched_on_with_what_it_signs_in_with() {
+    let signed = |pin: Option<&str>| {
+        Ok(Some(SignIn {
+            key: "key".to_owned(),
+            pin: pin.map(str::to_owned),
+        }))
+    };
+    assert_eq!(thetvdb(None, Some("key"), Some("1234")), Ok(None));
+    assert_eq!(thetvdb(Some("off"), Some("key"), None), Ok(None));
+    assert_eq!(
+        thetvdb(Some("on"), Some(" key "), Some("1234")),
+        signed(None)
+    );
+    assert_eq!(
+        thetvdb(Some("on-with-pin"), Some("key"), Some("1234")),
+        signed(Some("1234"))
+    );
+    assert_eq!(
+        thetvdb(Some("on"), Some(" "), None),
+        Err("THETVDB_LOOKUP is on, and THETVDB_KEY holds nothing".to_owned())
+    );
+    assert_eq!(
+        thetvdb(Some("on-with-pin"), Some("key"), None),
+        Err("THETVDB_LOOKUP is on, and THETVDB_PIN holds nothing".to_owned())
+    );
+    assert_eq!(
+        thetvdb(Some("yes"), Some("key"), None),
+        Err("THETVDB_LOOKUP is \"yes\", not off, on or on-with-pin".to_owned())
     );
 }

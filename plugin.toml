@@ -37,8 +37,8 @@ image       = "ghcr.io/lemonfiber/medusa-adapter"
 digest      = "sha256:4caae60b869a25b7d758d0aa4e6e3409a3ba2885eeed230cae95b49724969f03"
 tag         = "main-c291c26f9881"
 criticality = "core"
-reaches     = ""
-asks_for    = "Nothing beyond this machine. It answers lemonfiber's indexer.pull and library.curate contracts by calling Medusa, beside it, with the key and the account lemonfiber minted for it."
+reaches     = "TheTVDB's API at api4.thetvdb.com, only while the operator switches medusa:thetvdb-lookup on"
+asks_for    = "It answers lemonfiber's indexer.pull and library.curate contracts by calling Medusa, beside it, with the key and the account lemonfiber minted for it, and asks nothing beyond this machine unless the operator switches medusa:thetvdb-lookup on. Switched on, it signs in to TheTVDB with the operator's own key, and PIN where the key needs one, and asks it for the name, year and seasons of a series Medusa does not hold, so a household can request that series. Switched off, as it is until the operator turns it on, a series Medusa does not hold cannot be requested."
 config_path = "/config"
 listens     = 8080
 media_types = ["tv"]
@@ -49,6 +49,9 @@ upstream    = { api_key = { secret = "upstream-key" }, username = { secret = "we
 
 [service.env]
 IMPORT_STUCK_AFTER_MINUTES = { setting = "medusa:import-stuck-after", default = "60" }
+THETVDB_LOOKUP             = { setting = "medusa:thetvdb-lookup", default = "off", one_of = ["off", "on", "on-with-pin"] }
+THETVDB_KEY                = { secret = "thetvdb-key" }
+THETVDB_PIN                = { secret = "thetvdb-pin" }
 
 [[secret]]
 id     = "upstream-key"
@@ -70,6 +73,18 @@ of     = "medusa"
 minted = "password"
 why    = "The password Medusa's own pages answer to, which the adapter signs in with to have Medusa test its download clients"
 carried_from = { file = "/config/config.ini", format = "ini", key = "General.web_password" }
+
+[[secret]]
+id    = "thetvdb-key"
+of    = "medusa-adapter"
+why   = "Your own TheTVDB API key, which the adapter signs in to TheTVDB with to name a series Medusa does not hold"
+needs = { "medusa:thetvdb-lookup" = ["on", "on-with-pin"] }
+
+[[secret]]
+id    = "thetvdb-pin"
+of    = "medusa-adapter"
+why   = "Your TheTVDB subscriber PIN, which TheTVDB asks for beside a user-supported key"
+needs = { "medusa:thetvdb-lookup" = ["on-with-pin"] }
 
 [[proof]]
 id      = "medusa.answers"

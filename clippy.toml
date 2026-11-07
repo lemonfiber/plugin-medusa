@@ -1,4 +1,4 @@
-doc-valid-idents = [".."]
+doc-valid-idents = ["TheTVDB", ".."]
 # A client reqwest builds itself has no TLS to build with and panics for want of a
 # crypto provider, so every client here starts from the adapter kit's builder.
 disallowed-methods = [

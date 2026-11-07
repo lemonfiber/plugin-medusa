@@ -31,16 +31,23 @@ lemonfiber mints the name and password of Medusa's own pages.
 The request gate asks this adapter for a household's requests under a key the
 core writes for it as `request.key` beside the adapter's own. That key opens the
 request operations of `library.curate` and `quality_profiles`, `root_folders` and
-`lookup`, and nothing else. Medusa looks up a series it does not hold by name
-alone, never by its TheTVDB id, so `catalogued` answers only the series Medusa
-holds. A household's request therefore reaches Medusa only for a series it
-already holds; one it does not hold has to be added in Medusa's own pages first.
+`lookup`, and nothing else.
+
+Medusa looks up a series it does not hold by name alone, never by its TheTVDB
+id, so by default `catalogued` answers only the series Medusa holds, and a
+household's request reaches Medusa only for a series it already holds. With
+`medusa:thetvdb-lookup` on, the adapter asks TheTVDB itself for the name, year
+and seasons of a series Medusa does not hold, under your own TheTVDB API key,
+and that series can be requested too. It never uses the key Medusa ships with.
 
 ## Settings
 
 | Setting | Default | What it decides |
 | --- | --- | --- |
 | `medusa:import-stuck-after` | `60` | The minutes a finished download may wait for Medusa to import it before the adapter reports it stuck. `0` reports none |
+| `medusa:thetvdb-lookup` | `off` | Whether the adapter asks TheTVDB for a series Medusa does not hold: `off`, `on` under your key, or `on-with-pin` under your key and your subscriber PIN |
+| `medusa:thetvdb-key` | none | Your TheTVDB API key, asked for while the lookup is on |
+| `medusa:thetvdb-pin` | none | Your TheTVDB subscriber PIN, asked for while the lookup is `on-with-pin` |
 
 `lemonfiber config set medusa:import-stuck-after <minutes>` changes it. A stuck
 download is one `lemonfiber stuck` names, and `downloading` answers it as a
@@ -51,6 +58,14 @@ longer one leaves a download Medusa will never import waiting longer before it
 is named. The default is twelve passes of Medusa's download handler, which the
 adapter runs every five minutes: every import the rig saw began in the same pass
 that read its client as finished.
+
+The TheTVDB lookup is the one request the adapter makes beyond this machine, and
+lemonfiber lists it with what the stack's services reach. It is off until you
+switch it on, and while it is off nothing goes to TheTVDB. Switched on, it signs
+in to `api4.thetvdb.com` with your key, and your PIN where your key needs one,
+and reads one series' episodes each time the request service looks up a series
+Medusa does not hold. Switching it off again means a series Medusa does not hold
+cannot be requested.
 
 ## What Medusa cannot do
 

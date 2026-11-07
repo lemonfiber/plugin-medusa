@@ -66,6 +66,7 @@ pub struct Medusa {
     pause: Duration,
     patience: Option<Duration>,
     pending: Mutex<BTreeMap<String, tokio::time::Instant>>,
+    lookup: Option<Arc<crate::thetvdb::TheTvdb>>,
 }
 
 impl Medusa {
@@ -87,7 +88,16 @@ impl Medusa {
             pause: SEARCH_WAIT,
             patience: Some(IMPORT_PATIENCE),
             pending: Mutex::new(BTreeMap::new()),
+            lookup: None,
         }
+    }
+
+    /// The same Medusa, asking `lookup` for a series it does not hold, or nothing where
+    /// there is none.
+    #[must_use]
+    pub fn looking_up(mut self, lookup: Option<Arc<crate::thetvdb::TheTvdb>>) -> Self {
+        self.lookup = lookup;
+        self
     }
 
     /// The same Medusa, reporting an import stuck once it has waited `patience`, or never
