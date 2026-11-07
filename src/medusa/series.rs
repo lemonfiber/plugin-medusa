@@ -5,7 +5,9 @@ use serde_json::{json, Map, Value};
 use super::wire::{Consts, Main, Part, Preset, Qualities, Series};
 use super::Medusa;
 
-const SERIES: &str = "/series";
+pub(crate) const SERIES: &str = "/series";
+
+pub(crate) const BACKLOG: &str = "/search/backlog";
 
 pub(crate) const PROVIDERS: &str = "/providers";
 
@@ -71,7 +73,7 @@ impl Medusa {
         tvdb: i64,
         folder: &str,
         quality: i64,
-        chosen: [(&str, Value); 2],
+        chosen: &[(&str, Value)],
     ) -> Result<(), Failure> {
         let qualities = Qualities::of(quality);
         let mut options = Map::from_iter([
@@ -81,7 +83,11 @@ impl Medusa {
                 json!({ "allowed": qualities.allowed, "preferred": qualities.preferred }),
             ),
         ]);
-        options.extend(chosen.into_iter().map(|(at, value)| (at.to_owned(), value)));
+        options.extend(
+            chosen
+                .iter()
+                .map(|(at, value)| ((*at).to_owned(), value.clone())),
+        );
         self.done(
             Method::Post,
             SERIES,

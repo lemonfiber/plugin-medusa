@@ -3,7 +3,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use async_trait::async_trait;
 use lemonfiber_adapter_kit::endpoint::form_encoded;
 use lemonfiber_ports::service::stage::Stage;
-use lemonfiber_ports::service::{Failure, Queue, Queued, Queues};
+use lemonfiber_ports::service::{DownloadState, Failure, Queue, Queued, Queues};
 
 use super::wire::HistoryRow;
 use super::Medusa;
@@ -42,6 +42,8 @@ const OVER: i64 = POSTPROCESSED | ABORTED | REMOVED | SEED_ACTION;
 
 const HISTORY_DEPTH: usize = 1000;
 
+const BLOCKED: (&str, &str) = ("warning", "importBlocked");
+
 pub(crate) fn newest_history(depth: usize) -> String {
     format!(
         "limit={depth}&{}",
@@ -62,6 +64,8 @@ pub(crate) struct InFlight {
     pub(crate) stage: Stage,
     pub(crate) download_id: Option<String>,
     pub(crate) grabs: u32,
+    pub(crate) size: u64,
+    pub(crate) standing: DownloadState,
 }
 
 impl InFlight {
@@ -70,18 +74,38 @@ impl InFlight {
     }
 }
 
-fn reading(bits: Option<i64>) -> (&'static str, &'static str, Stage) {
+fn reading(bits: Option<i64>) -> (&'static str, &'static str, Stage, DownloadState) {
     let bits = bits.unwrap_or_default();
     if bits & FAILED_IN_CLIENT != 0 {
-        ("error", "failedPending", Stage::Downloading)
+        (
+            "error",
+            "failedPending",
+            Stage::Downloading,
+            DownloadState::Failed,
+        )
     } else if bits & (COMPLETED | FETCHED | SEEDED) != 0 {
-        ("ok", "importPending", Stage::Downloaded)
+        (
+            "ok",
+            "importPending",
+            Stage::Downloaded,
+            DownloadState::Completed,
+        )
     } else if bits & PAUSED != 0 {
-        ("warning", "downloading", Stage::Downloading)
+        (
+            "warning",
+            "downloading",
+            Stage::Downloading,
+            DownloadState::Paused,
+        )
     } else if bits & (DOWNLOADING | EXTRACTING) != 0 {
-        ("ok", "downloading", Stage::Downloading)
+        (
+            "ok",
+            "downloading",
+            Stage::Downloading,
+            DownloadState::Downloading,
+        )
     } else {
-        ("ok", "queued", Stage::Grabbed)
+        ("ok", "queued", Stage::Grabbed, DownloadState::Queued)
     }
 }
 
@@ -114,7 +138,7 @@ pub(crate) fn in_flight(rows: Vec<HistoryRow>) -> Vec<InFlight> {
             settled.insert(key);
             continue;
         }
-        let (status, said, reached) = reading(bits);
+        let (status, said, reached, standing) = reading(bits);
         at.insert(key, flights.len());
         flights.push(InFlight {
             slug: row.show_slug.unwrap_or_default(),
@@ -127,9 +151,22 @@ pub(crate) fn in_flight(rows: Vec<HistoryRow>) -> Vec<InFlight> {
             stage: reached,
             download_id: row.info_hash.filter(|hash| !hash.is_empty()),
             grabs: 1,
+            size: row.size,
+            standing,
         });
     }
     flights
+}
+
+impl InFlight {
+    fn waited(&self) -> String {
+        format!("{}/{}/{}", self.slug, self.season, self.episode)
+    }
+
+    fn blocked(&mut self) {
+        (self.status, self.state) = BLOCKED;
+        self.standing = DownloadState::Warning;
+    }
 }
 
 impl Medusa {
@@ -140,7 +177,35 @@ impl Medusa {
                 "Medusa's history could not be read",
             )
             .await?;
-        Ok(in_flight(rows))
+        let mut flights = in_flight(rows);
+        self.age(&mut flights);
+        Ok(flights)
+    }
+
+    fn age(&self, flights: &mut [InFlight]) {
+        let now = tokio::time::Instant::now();
+        let mut pending = self
+            .pending
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        let waiting: BTreeSet<String> = flights
+            .iter()
+            .filter(|flight| flight.stage == Stage::Downloaded)
+            .map(InFlight::waited)
+            .collect();
+        pending.retain(|flight, _| waiting.contains(flight));
+        for flight in flights
+            .iter_mut()
+            .filter(|one| one.stage == Stage::Downloaded)
+        {
+            let since = *pending.entry(flight.waited()).or_insert(now);
+            if self
+                .patience
+                .is_some_and(|patience| now.duration_since(since) >= patience)
+            {
+                flight.blocked();
+            }
+        }
     }
 }
 

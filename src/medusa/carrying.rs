@@ -97,7 +97,7 @@ impl Carrying for Medusa {
             tvdb,
             &folder,
             quality,
-            [
+            &[
                 ("paused", json!(paused(&record))),
                 ("seasonFolders", json!(season_folders(&record))),
             ],

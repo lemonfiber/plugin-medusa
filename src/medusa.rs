@@ -2,7 +2,8 @@
 //! for this adapter, and through the pages its own interface asks where that API has no
 //! answer.
 
-use std::sync::Arc;
+use std::collections::BTreeMap;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use lemonfiber_adapter_kit::credential::Holding;
@@ -15,6 +16,7 @@ use serde_json::Value;
 mod carrying;
 mod catalogue;
 mod clients;
+mod fulfilling;
 mod importing;
 mod pulling;
 mod queue;
@@ -49,6 +51,11 @@ const SEARCH_WAIT: Duration = Duration::from_secs(1);
 
 const SEARCH_ROUNDS: usize = 10;
 
+/// How long an import may wait before it is reported stuck, unless the adapter is told
+/// otherwise: twelve passes of the download handler the adapter sets running every five
+/// minutes.
+pub const IMPORT_PATIENCE: Duration = Duration::from_secs(60 * 60);
+
 /// A client for one Medusa, presenting the key `held` supplies on every call to its API,
 /// and signing in to its own pages as the account `username` and `password` supply.
 pub struct Medusa {
@@ -57,6 +64,8 @@ pub struct Medusa {
     username: Arc<dyn Holding>,
     password: Arc<dyn Holding>,
     pause: Duration,
+    patience: Option<Duration>,
+    pending: Mutex<BTreeMap<String, tokio::time::Instant>>,
 }
 
 impl Medusa {
@@ -76,7 +85,17 @@ impl Medusa {
             username,
             password,
             pause: SEARCH_WAIT,
+            patience: Some(IMPORT_PATIENCE),
+            pending: Mutex::new(BTreeMap::new()),
         }
+    }
+
+    /// The same Medusa, reporting an import stuck once it has waited `patience`, or never
+    /// where there is none.
+    #[must_use]
+    pub fn waiting_on_imports(mut self, patience: Option<Duration>) -> Self {
+        self.patience = patience;
+        self
     }
 
     /// The same Medusa, looking again at a search it started after `pause` each time.
@@ -86,7 +105,7 @@ impl Medusa {
         self
     }
 
-    /// Whether Medusa shows its sign-in page, which it shows to anybody.
+    /// Whether Medusa's API says which release it runs.
     pub async fn answers(&self) -> bool {
         self.release().await.is_ok()
     }

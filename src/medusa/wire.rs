@@ -5,6 +5,10 @@ pub(crate) const PREFERRED_SHIFT: u32 = 16;
 
 pub(crate) const ALLOWED_MASK: i64 = 0xFFFF;
 
+pub(crate) const UNASKED: [&str; 2] = ["Skipped", "Ignored"];
+
+pub(crate) const WANTED: i64 = 3;
+
 #[derive(Deserialize, Default)]
 pub(crate) struct Ids {
     #[serde(default)]
@@ -72,6 +76,8 @@ pub(crate) struct SeriesConfig {
     pub(crate) root_dir: String,
     #[serde(default)]
     pub(crate) qualities: Qualities,
+    #[serde(default)]
+    pub(crate) default_episode_status: String,
 }
 
 #[derive(Deserialize)]
@@ -108,6 +114,8 @@ pub(crate) struct Part {
     #[serde(default)]
     pub(crate) id: Ids,
     #[serde(default)]
+    pub(crate) slug: String,
+    #[serde(default)]
     pub(crate) season: u32,
     #[serde(default, rename = "episode")]
     pub(crate) number: u32,
@@ -134,6 +142,8 @@ pub(crate) struct HistoryRow {
     pub(crate) action_date: Value,
     #[serde(default)]
     pub(crate) resource: String,
+    #[serde(default)]
+    pub(crate) size: u64,
     #[serde(default)]
     pub(crate) season: u32,
     #[serde(default)]

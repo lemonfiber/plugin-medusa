@@ -59,6 +59,20 @@ history and the state its download handler reads from each client.
 - **The adapter is ready once Medusa's API says which release it runs.** On a busy
   machine Medusa shows its sign-in page while that call still outlasts the adapter's
   time limit, so the sign-in page does not decide it.
+- **The request gate's key opens the request operations alone** (`ARCH-R386`):
+  the kit reads `request.key` beside the adapter's configuration on every request.
+  A series is named by its TheTVDB id, which is also the adapter's id for it
+  (`ARCH-R385`). `catalogued` answers a series Medusa holds and none otherwise,
+  since Medusa's API looks a series up by name alone. `request` adds a series
+  every episode skipped, waits for Medusa's show queue to finish adding it, sets
+  what airs later to wanted or skipped as asked, and then wants every skipped,
+  ignored or unaired episode of the seasons asked; a series it holds is unpaused
+  and has those episodes wanted, and nothing else changes. An episode counts as
+  monitored unless it is skipped or ignored, or unaired where the series skips
+  what airs later.
+- **An import waiting past `IMPORT_STUCK_AFTER_MINUTES` is stuck.** The
+  setting `medusa:import-stuck-after` writes it, `60` by default and `0` for never;
+  the adapter keeps when it first read each import as waiting, in memory.
 - **What Medusa cannot do is answered `unsupported`** (`ARCH-R334`).
 - **The core's crates move with the train.** The `rev` in `Cargo.toml` is the
   core commit `targets.toml` names, the same for every `lemonfiber-*` crate.

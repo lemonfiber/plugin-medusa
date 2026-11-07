@@ -1,12 +1,20 @@
 //! What this adapter says it is, and the kit that serves its contracts.
 
+use std::path::PathBuf;
 use std::sync::Arc;
+use std::time::Duration;
 
 use lemonfiber_adapter_kit::{Kit, Readiness};
 use lemonfiber_contract::adapter::{About, Release};
 use lemonfiber_contract::capabilities::{indexer, library};
 
-use crate::medusa::Medusa;
+use crate::medusa::{Medusa, IMPORT_PATIENCE};
+
+/// The variable of the adapter's environment holding how many minutes an import may wait
+/// before it is reported stuck, `0` reporting none.
+pub const IMPORT_STUCK_AFTER: &str = "IMPORT_STUCK_AFTER_MINUTES";
+
+const MINUTE: u64 = 60;
 
 /// Where Medusa answers, by its service id and the port it listens on.
 pub const ADDRESS: &str = "http://medusa:8081";
@@ -39,9 +47,26 @@ pub fn about() -> About {
     }
 }
 
-/// The contracts, served from `medusa` under `key`, ready while Medusa answers.
+/// How long an import may wait before it is reported stuck, as `minutes` says: the
+/// default where it says nothing, and never where it says `0`.
+///
+/// # Errors
+///
+/// Where `minutes` is not a whole number of minutes.
+pub fn patience(minutes: Option<&str>) -> Result<Option<Duration>, String> {
+    let Some(minutes) = minutes else {
+        return Ok(Some(IMPORT_PATIENCE));
+    };
+    let minutes: u64 = minutes.trim().parse().map_err(|_| {
+        format!("{IMPORT_STUCK_AFTER} is {minutes:?}, not a whole number of minutes")
+    })?;
+    Ok((minutes > 0).then(|| Duration::from_secs(minutes.saturating_mul(MINUTE))))
+}
+
+/// The contracts, served from `medusa` under `key`, ready while Medusa answers, and
+/// answering the request gate under each key the core wrote for it in `configuration`.
 #[must_use]
-pub fn kit(key: String, medusa: Arc<Medusa>) -> Kit {
+pub fn kit(key: String, medusa: Arc<Medusa>, configuration: impl Into<PathBuf>) -> Kit {
     let asked = Arc::clone(&medusa);
     let ready: Readiness = Arc::new(move || {
         let asked = Arc::clone(&asked);
@@ -49,6 +74,7 @@ pub fn kit(key: String, medusa: Arc<Medusa>) -> Kit {
     });
     Kit::new(key, about())
         .ready_when(ready)
+        .asked_by_the_gate(configuration)
         .serving(indexer::pull::served(Arc::clone(&medusa)))
         .serving(library::curate::served(medusa))
 }
