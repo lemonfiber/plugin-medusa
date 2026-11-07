@@ -81,17 +81,21 @@ pub(super) fn refused(detail: &str) -> Failure {
 }
 
 #[tokio::test]
-async fn it_answers_while_its_sign_in_page_is_shown_to_a_caller_presenting_nothing() {
-    let up = Fake::always(Answer::reply(200, "<!DOCTYPE html>"));
+async fn it_answers_while_the_api_says_which_release_it_runs() {
+    let up = Fake::always(json(200, &serde_json::json!("1.0.27")));
     assert!(medusa(&up).answers().await);
     assert_eq!(
         up.requests()
             .iter()
-            .map(|one| (one.url.clone(), one.headers.is_empty()))
+            .map(|one| one.url.clone())
             .collect::<Vec<_>>(),
-        [(format!("{BASE}/login/"), true)]
+        [format!("{BASE}/api/v2/config/system/release")]
     );
-    for down in [Fake::silent(), Fake::always(Answer::reply(302, ""))] {
+    for down in [
+        Fake::silent(),
+        Fake::always(Answer::reply(503, "")),
+        Fake::always(Answer::reply(200, "<!DOCTYPE html>")),
+    ] {
         assert!(!medusa(&down).answers().await);
     }
 }

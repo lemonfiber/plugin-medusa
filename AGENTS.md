@@ -47,7 +47,18 @@ history and the state its download handler reads from each client.
   own pages hands its key to anybody at `/getkey/` and answers its API to an
   empty sign-in, which the proof `medusa.keeps-its-key` holds the pinned image to.
 - **Medusa pulls its indexers from Prowlarr and from NZBHydra2,** named in the
-  servarr and nzbhydra2 APIs (`ARCH-R332`, `ARCH-R333`).
+  servarr and nzbhydra2 APIs (`ARCH-R332`, `ARCH-R333`). Medusa copies Prowlarr's
+  indexers once and never reads them again, so `aggregators` lists the link only
+  while Medusa holds exactly what Prowlarr holds, and `add_aggregator` adds and
+  switches on what is missing, removes what Prowlarr lost, and gives every
+  provider Prowlarr's key. A Prowlarr Medusa cannot reach is not listed, so the
+  link is asked for again with the address and key the core holds, and is refused
+  if Medusa still cannot reach it. A provider removed over Medusa's API returns
+  after a restart switched off and with no address, because Medusa keeps its name
+  in its settings; a provider with no address counts as nothing it pulls from.
+- **The adapter is ready once Medusa's API says which release it runs.** On a busy
+  machine Medusa shows its sign-in page while that call still outlasts the adapter's
+  time limit, so the sign-in page does not decide it.
 - **What Medusa cannot do is answered `unsupported`** (`ARCH-R334`).
 - **The core's crates move with the train.** The `rev` in `Cargo.toml` is the
   core commit `targets.toml` names, the same for every `lemonfiber-*` crate.
