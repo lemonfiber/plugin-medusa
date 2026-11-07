@@ -10,8 +10,6 @@ use serde_json::{json, Value};
 
 use super::{unsupported, Medusa};
 
-const RELEASE: &str = "/config/system/release";
-
 const CLIENTS: &str = "/config/clients";
 
 const NAME: &str = "Medusa";
@@ -314,9 +312,7 @@ impl Medusa {
 #[async_trait]
 impl Client for Medusa {
     async fn identity(&self) -> Result<Identity, Failure> {
-        let version: String = self
-            .read(RELEASE, "Medusa did not say which release it runs")
-            .await?;
+        let version = self.release().await?;
         if version.is_empty() {
             return Err(self.endpoint.refused("Medusa named no release"));
         }

@@ -29,6 +29,8 @@ const API: &str = "/api/v2";
 
 const SIGN_IN: &str = "/login/";
 
+const RELEASE: &str = "/config/system/release";
+
 const KEY_HEADER: &str = "X-Api-Key";
 
 const CONTENT_TYPE: &str = "Content-Type";
@@ -86,17 +88,12 @@ impl Medusa {
 
     /// Whether Medusa shows its sign-in page, which it shows to anybody.
     pub async fn answers(&self) -> bool {
-        let request = Request {
-            method: Method::Get,
-            url: self.endpoint.url(SIGN_IN),
-            headers: Vec::new(),
-            body: None,
-            pinned: None,
-        };
-        self.endpoint
-            .send(&request)
+        self.release().await.is_ok()
+    }
+
+    pub(crate) async fn release(&self) -> Result<String, Failure> {
+        self.read(RELEASE, "Medusa did not say which release it runs")
             .await
-            .is_ok_and(|response| response.is_success())
     }
 
     fn held(&self, holding: &dyn Holding, what: &str) -> Result<String, Failure> {

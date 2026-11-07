@@ -161,9 +161,9 @@ async fn a_capability_it_does_not_speak_is_refused_as_unknown() {
 }
 
 #[tokio::test]
-async fn it_is_ready_while_medusa_shows_its_sign_in_page() {
+async fn it_is_ready_while_medusa_says_which_release_it_runs() {
     let key = a_key();
-    let up = Fake::always(Answer::reply(200, "<!DOCTYPE html>"));
+    let up = Fake::always(Answer::reply(200, "\"1.0.27\""));
     let (status, body) = answered_by(&up, "GET", &ready_path(), Some(&key), "").await;
     assert_eq!(
         (status, body.as_slice()),
@@ -172,8 +172,12 @@ async fn it_is_ready_while_medusa_shows_its_sign_in_page() {
     assert!(up
         .requests()
         .iter()
-        .all(|asked| asked.url == "http://medusa:8081/login/"));
-    for down in [Fake::silent(), Fake::always(Answer::reply(503, ""))] {
+        .all(|asked| asked.url == "http://medusa:8081/api/v2/config/system/release"));
+    for down in [
+        Fake::silent(),
+        Fake::always(Answer::reply(503, "")),
+        Fake::always(Answer::reply(200, "<!DOCTYPE html>")),
+    ] {
         let (status, body) = answered_by(&down, "GET", &ready_path(), Some(&key), "").await;
         assert_eq!(
             (status, body.as_slice()),

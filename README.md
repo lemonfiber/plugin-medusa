@@ -11,12 +11,20 @@ lemonfiber's `indexer.pull` and `library.curate` contracts in front of Medusa: a
 Rust crate built on the core's adapter kit, into the image
 `ghcr.io/lemonfiber/medusa-adapter`, published from every commit on `main` and
 from each tag the release train cuts. It tells Medusa which Prowlarr or
-NZBHydra2 to take its indexers from, and registers and reads its download
-clients, root folders, quality presets, series and what it has in flight.
+NZBHydra2 to take its indexers from, brings Medusa level with what Prowlarr holds
+each time lemonfiber seeds, and registers and reads its download clients, root
+folders, quality presets, series and what it has in flight.
 lemonfiber reaches Medusa through this adapter alone. lemonfiber mints Medusa's
 key and the name and password of its own pages, writes them into Medusa's
 settings before it first starts, and writes them into the adapter's
 `upstream.json`.
+
+## Sign in to Medusa
+
+lemonfiber mints the name and password of Medusa's own pages.
+`lemonfiber credentials` lists them, and
+`lemonfiber credentials --reveal medusa:web-username` and
+`--reveal medusa:web-password` print them, asking first.
 
 ## What is here
 
