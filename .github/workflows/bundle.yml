@@ -12,7 +12,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: read
-    uses: lemonfiber/spec/.github/workflows/first-party-bundle.yml@8894900e86414b166ccd35f272b836d2e0d1b2c2 # v1.0.137
+    uses: lemonfiber/spec/.github/workflows/first-party-bundle.yml@3807b6d59a2f247ec82dffe997e8bc1a54e1e183 # v1.0.140
     with:
       pin: adapter
     secrets:
