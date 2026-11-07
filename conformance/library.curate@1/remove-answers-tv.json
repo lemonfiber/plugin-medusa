@@ -1,0 +1,10 @@
+{
+  "recorded_from": "lscr.io/linuxserver/medusa@sha256:aad89df58a047bab3521a695f0508f2e89fc9ba1f1196866dc8e9a810fc3ae5d",
+  "note": "A removal of id 0 on a fresh Medusa: refused, since it holds no series to remove.",
+  "request": {"method": "POST", "path": "/lemonfiber/library.curate/v1/remove", "accept": "application/json"},
+  "response": {
+    "status": 500,
+    "headers": {"content-type": "application/problem+json"},
+    "json": {"detail": "Medusa holds no series with TheTVDB id 0", "type": "refused"}
+  }
+}

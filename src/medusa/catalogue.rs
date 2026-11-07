@@ -9,8 +9,8 @@ use lemonfiber_ports::service::{
 use serde::Deserialize;
 use serde_json::{json, Value};
 
-use super::series::PROVIDERS;
-use super::wire::Qualities;
+use super::series::{BACKLOG, PROVIDERS};
+use super::wire::{Qualities, WANTED};
 use super::{unsupported, Medusa};
 
 const SEARCHED: &str = "/internal/searchIndexersForShowName";
@@ -19,11 +19,7 @@ const TVDB: &str = "1";
 
 const WANTED_LIST: &str = "/internal/getEpisodeBacklog?status=wanted&period=all";
 
-const BACKLOG: &str = "/search/backlog";
-
 const MANUAL: &str = "/search/manual";
-
-const WANTED: i64 = 3;
 
 const FINISHED: &str = "finished";
 
@@ -229,7 +225,7 @@ impl Catalogue for Medusa {
             entry.reference,
             &plan.root_folder,
             plan.quality_profile,
-            [("status", json!(WANTED)), ("seasonFolders", json!(true))],
+            &[("status", json!(WANTED)), ("seasonFolders", json!(true))],
         )
         .await?;
         Ok(Added {

@@ -6,8 +6,8 @@ use lemonfiber_contract::adapter::{about_path, ready_path, About};
 use lemonfiber_fixtures::http::{Answer, Fake};
 use tower::ServiceExt as _;
 
-use super::{about, kit, ADDRESS, DIGEST, RELEASE, UPSTREAM};
-use crate::medusa::Medusa;
+use super::{about, kit, patience, ADDRESS, DIGEST, IMPORT_STUCK_AFTER, RELEASE, UPSTREAM};
+use crate::medusa::{Medusa, IMPORT_PATIENCE};
 
 fn a_key() -> String {
     ('e'..='t').collect()
@@ -30,6 +30,17 @@ async fn answered_by(
     key: Option<&str>,
     body: &str,
 ) -> (StatusCode, Vec<u8>) {
+    answered_in("/nowhere", fake, method, path, key, body).await
+}
+
+async fn answered_in(
+    configuration: &str,
+    fake: &Arc<Fake>,
+    method: &str,
+    path: &str,
+    key: Option<&str>,
+    body: &str,
+) -> (StatusCode, Vec<u8>) {
     let mut request = Request::builder().method(method).uri(path);
     if let Some(key) = key {
         request = request.header(header::AUTHORIZATION, format!("Bearer {key}"));
@@ -37,7 +48,10 @@ async fn answered_by(
     let Ok(request) = request.body(Body::from(body.to_owned())) else {
         return (StatusCode::IM_A_TEAPOT, Vec::new());
     };
-    let Ok(response) = kit(a_key(), medusa(fake)).router().oneshot(request).await;
+    let Ok(response) = kit(a_key(), medusa(fake), configuration)
+        .router()
+        .oneshot(request)
+        .await;
     let status = response.status();
     let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
         .await
@@ -184,4 +198,55 @@ async fn it_is_ready_while_medusa_says_which_release_it_runs() {
             (StatusCode::OK, b"false".as_slice())
         );
     }
+}
+
+#[tokio::test]
+async fn the_request_gate_s_key_opens_the_request_operations_alone() {
+    let configuration = std::env::temp_dir().join(format!("medusa-gate-{}", std::process::id()));
+    let gate: String = ('G'..='V').collect();
+    let written = std::fs::create_dir_all(&configuration)
+        .and_then(|()| std::fs::write(configuration.join("request.key"), format!("{gate}\n")));
+    assert!(written.is_ok());
+    let at = configuration.to_string_lossy().into_owned();
+    let fake = Fake::always(Answer::reply(200, "[]"));
+    let (titles, _) = answered_in(
+        &at,
+        &fake,
+        "POST",
+        "/lemonfiber/library.curate/v1/titles",
+        Some(&gate),
+        r#"{"kind":"tv"}"#,
+    )
+    .await;
+    let (identity, refusal) = answered_in(
+        &at,
+        &fake,
+        "POST",
+        "/lemonfiber/library.curate/v1/identity",
+        Some(&gate),
+        "{}",
+    )
+    .await;
+    let (about, _) = answered_in(&at, &fake, "GET", &about_path(), Some(&gate), "").await;
+    let _ = std::fs::remove_dir_all(&configuration);
+    assert_eq!(titles, StatusCode::OK);
+    assert_eq!(identity, StatusCode::BAD_REQUEST);
+    assert!(String::from_utf8_lossy(&refusal).contains("disallowed"));
+    assert_eq!(about, StatusCode::BAD_REQUEST);
+}
+
+#[test]
+fn an_import_waits_an_hour_unless_told_otherwise_and_never_where_told_none() {
+    assert_eq!(patience(None), Ok(Some(IMPORT_PATIENCE)));
+    assert_eq!(
+        patience(Some(" 15 ")),
+        Ok(Some(std::time::Duration::from_secs(900)))
+    );
+    assert_eq!(patience(Some("0")), Ok(None));
+    assert_eq!(
+        patience(Some("soon")),
+        Err(format!(
+            "{IMPORT_STUCK_AFTER} is \"soon\", not a whole number of minutes"
+        ))
+    );
 }

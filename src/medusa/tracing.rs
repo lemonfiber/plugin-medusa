@@ -9,10 +9,8 @@ use lemonfiber_ports::service::{
 use serde_json::Value;
 
 use super::queue::{newest_history, DOWNLOADED, FAILED, SNATCHED};
-use super::wire::HistoryRow;
+use super::wire::{HistoryRow, UNASKED};
 use super::Medusa;
-
-const UNASKED: [&str; 2] = ["Skipped", "Ignored"];
 
 fn outcome(status: i64) -> Option<Outcome> {
     if SNATCHED.contains(&status) {

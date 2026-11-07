@@ -140,3 +140,63 @@ async fn a_snatch_naming_no_hash_names_no_download() {
         Some(None)
     );
 }
+
+async fn standing(medusa: &crate::medusa::Medusa) -> Vec<(String, String)> {
+    medusa
+        .queue()
+        .await
+        .map(|queue| {
+            queue
+                .items
+                .into_iter()
+                .map(|one| (one.status, one.state))
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+fn blocked() -> Vec<(String, String)> {
+    vec![("warning".to_owned(), "importBlocked".to_owned())]
+}
+
+fn pending() -> Vec<(String, String)> {
+    vec![("ok".to_owned(), "importPending".to_owned())]
+}
+
+#[tokio::test(start_paused = true)]
+async fn an_import_waiting_its_patience_through_is_blocked() {
+    let fake = Fake::always(json(200, &json!([row(2, 1, Some(&[128]))])));
+    let medusa = medusa(&fake);
+    assert_eq!(standing(&medusa).await, pending());
+    let almost = crate::medusa::IMPORT_PATIENCE.saturating_sub(std::time::Duration::from_secs(1));
+    tokio::time::advance(almost).await;
+    assert_eq!(standing(&medusa).await, pending());
+    tokio::time::advance(std::time::Duration::from_secs(1)).await;
+    assert_eq!(standing(&medusa).await, blocked());
+}
+
+#[tokio::test(start_paused = true)]
+async fn an_import_that_stops_waiting_starts_its_patience_again() {
+    let fake = Fake::in_turn(vec![
+        json(200, &json!([row(2, 1, Some(&[128]))])),
+        json(200, &json!([row(2, 1, Some(&[2]))])),
+        json(200, &json!([row(2, 1, Some(&[128]))])),
+    ]);
+    let medusa = medusa(&fake);
+    assert_eq!(standing(&medusa).await, pending());
+    tokio::time::advance(crate::medusa::IMPORT_PATIENCE).await;
+    assert_eq!(
+        standing(&medusa).await,
+        vec![("ok".to_owned(), "downloading".to_owned())]
+    );
+    assert_eq!(standing(&medusa).await, pending());
+}
+
+#[tokio::test(start_paused = true)]
+async fn with_no_patience_an_import_is_never_blocked() {
+    let fake = Fake::always(json(200, &json!([row(2, 1, Some(&[128]))])));
+    let medusa = medusa(&fake).waiting_on_imports(None);
+    assert_eq!(standing(&medusa).await, pending());
+    tokio::time::advance(crate::medusa::IMPORT_PATIENCE * 10).await;
+    assert_eq!(standing(&medusa).await, pending());
+}

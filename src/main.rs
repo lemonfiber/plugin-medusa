@@ -31,6 +31,11 @@ async fn serve(settings: &Settings) -> Result<(), String> {
     if key.is_empty() {
         return Err("the plugin's key is empty".to_owned());
     }
+    let patience = medusa_adapter::adapter::patience(
+        std::env::var(medusa_adapter::adapter::IMPORT_STUCK_AFTER)
+            .ok()
+            .as_deref(),
+    )?;
     let web = Web::new().map_err(|why| format!("no HTTP client could be made: {why}"))?;
     let medusa = Medusa::new(
         Arc::new(web),
@@ -47,13 +52,14 @@ async fn serve(settings: &Settings) -> Result<(), String> {
             &settings.configuration,
             UPSTREAM_PASSWORD,
         )),
-    );
+    )
+    .waiting_on_imports(patience);
     let listener = tokio::net::TcpListener::bind(&settings.listen)
         .await
         .map_err(|why| format!("{} could not be listened on: {why}", settings.listen))?;
     eprintln!("medusa-adapter: answering on {}", settings.listen);
     lemonfiber_adapter_kit::serving(
-        medusa_adapter::adapter::kit(key, Arc::new(medusa)),
+        medusa_adapter::adapter::kit(key, Arc::new(medusa), settings.configuration.clone()),
         listener,
         stopped(),
     )
