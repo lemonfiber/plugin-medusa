@@ -24,6 +24,6 @@ jobs:
       contents: read
       pull-requests: write
       issues: write
-    uses: lemonfiber/spec/.github/workflows/gates.yml@3807b6d59a2f247ec82dffe997e8bc1a54e1e183 # v1.0.140
+    uses: lemonfiber/spec/.github/workflows/gates.yml@757e680b2ed8d9d8df1f92b730ceea14c3ff873f # v1.0.141
     with:
       checks: spec-check hygiene workflow-pins security dco commitlint squash-message explain labeler goals refs
