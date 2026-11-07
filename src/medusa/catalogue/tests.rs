@@ -228,21 +228,63 @@ async fn it_counts_the_providers_it_searches() {
 }
 
 #[tokio::test]
-async fn upgrades_are_searched_by_its_backlog_search() {
-    let fake = Fake::always(Answer::reply(202, "\"Full backlog search started\""));
+async fn upgrades_are_searched_by_a_backlog_search_of_each_series_it_is_not_pausing() {
+    let fake = Fake::by_route(vec![
+        (
+            Method::Get,
+            "/series",
+            json(
+                200,
+                &json!([
+                    { "id": { "tvdb": 1, "slug": "tvdb1" }, "config": { "paused": false } },
+                    { "id": { "tvdb": 2, "slug": "tvdb2" }, "config": { "paused": true } },
+                    { "id": { "tvdb": 3, "slug": "tvdb3" }, "config": { "paused": false } },
+                ]),
+            ),
+        ),
+        (
+            Method::Put,
+            "/search/backlog",
+            Answer::reply(202, "\"Backlog search started\""),
+        ),
+    ]);
     assert!(medusa(&fake).search_upgrades(Kind::Tv).await.is_ok());
     assert_eq!(
-        asked(&fake),
-        [(Method::Put, "/api/v2/search/backlog".to_owned(), None)]
+        asked(&fake)
+            .into_iter()
+            .filter(|(method, _, _)| *method == Method::Put)
+            .map(|(_, path, body)| (path, body))
+            .collect::<Vec<_>>(),
+        [
+            (
+                "/api/v2/search/backlog".to_owned(),
+                Some(json!({ "showSlug": "tvdb1" }))
+            ),
+            (
+                "/api/v2/search/backlog".to_owned(),
+                Some(json!({ "showSlug": "tvdb3" }))
+            ),
+        ]
     );
-    let busy = Fake::always(json(
-        400,
-        &json!({ "error": "Triggering a full backlog search failed" }),
-    ));
+    let refusing = Fake::by_route(vec![
+        (
+            Method::Get,
+            "/series",
+            json(200, &json!([{ "id": { "tvdb": 1, "slug": "tvdb1" } }])),
+        ),
+        (
+            Method::Put,
+            "/search/backlog",
+            json(404, &json!({ "error": "Series not found" })),
+        ),
+    ]);
     assert_eq!(
-        why(medusa(&busy).search_upgrades(Kind::Tv).await),
-        so(refused("HTTP 400: Triggering a full backlog search failed"))
+        why(medusa(&refusing).search_upgrades(Kind::Tv).await),
+        so(refused("HTTP 404: Series not found"))
     );
+    let nothing = Fake::always(json(200, &json!([])));
+    assert!(medusa(&nothing).search_upgrades(Kind::Tv).await.is_ok());
+    assert_eq!(nothing.requests().len(), 1);
 }
 
 #[tokio::test]
@@ -274,8 +316,8 @@ fn wanted() -> Value {
     json!([
         { "slug": "tvdb2", "quality": 6, "episodes": [] },
         { "slug": "tvdb1", "quality": 6 | (32 << 16), "episodes": [
-            { "season": 1, "episode": 2, "slug": "s01e02" },
-            { "season": 1, "episode": 1, "slug": "s01e01" },
+            { "season": 1, "episode": 2, "slug": "S01E02" },
+            { "season": 1, "episode": 1, "slug": "S01E01" },
         ] },
     ])
 }
@@ -296,8 +338,8 @@ fn searched(status: &str) -> Answer {
     json(
         200,
         &json!({ "results": [
-        { "episode": { "slug": "s01e09" }, "searchstatus": "queued" },
-        { "episode": { "slug": "s01e02" }, "searchstatus": status },
+        { "episode": { "slug": "s01e09" }, "search": { "status": "queued" } },
+        { "episode": { "slug": "s01e02" }, "search": { "status": status } },
     ] }),
     )
 }
@@ -352,7 +394,7 @@ async fn the_first_wanted_episode_is_searched_and_what_was_found_judged_by_its_q
             Some(&(
                 Method::Put,
                 "/api/v2/search/manual".to_owned(),
-                Some(json!({ "showSlug": "tvdb1", "episodes": ["s01e02"] }))
+                Some(json!({ "showSlug": "tvdb1", "episodes": ["S01E02"] }))
             ))
         );
         assert!(fake.asked_for("/providers/one/results?showslug=tvdb1&season=1&episode=2"));
