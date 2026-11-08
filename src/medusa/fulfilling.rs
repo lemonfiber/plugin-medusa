@@ -358,6 +358,7 @@ impl Fulfilling for Medusa {
                     expected: None,
                     state: flight.standing,
                     download_id: flight.download_id,
+                    queued: None,
                     episode: Some(DownloadedEpisode {
                         season: flight.season,
                         number: flight.episode,

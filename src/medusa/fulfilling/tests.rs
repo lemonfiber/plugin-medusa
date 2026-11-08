@@ -503,6 +503,7 @@ async fn what_is_downloading_names_its_series_its_episode_and_where_it_stands() 
         expected: None,
         state,
         download_id: Some(format!("hash-{episode}")),
+        queued: None,
         episode: Some(DownloadedEpisode {
             season: 1,
             number: episode,
