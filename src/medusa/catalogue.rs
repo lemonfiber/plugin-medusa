@@ -19,11 +19,11 @@ const TVDB: &str = "1";
 
 const WANTED_LIST: &str = "/internal/getEpisodeBacklog?status=wanted&period=all";
 
-const MANUAL: &str = "/search/manual";
+pub(super) const MANUAL: &str = "/search/manual";
 
 const FINISHED: &str = "finished";
 
-const NOT_FOUND: u16 = 404;
+pub(super) const NOT_FOUND: u16 = 404;
 
 const TITLE_AT: usize = 4;
 
@@ -114,7 +114,7 @@ fn searching(provider: &Value) -> bool {
     provider.pointer("/config/enabled").and_then(Value::as_bool) == Some(true)
 }
 
-fn searched_by_hand(provider: &Value) -> Option<String> {
+pub(super) fn searched_by_hand(provider: &Value) -> Option<String> {
     let manual = provider
         .pointer("/config/search/manual/enabled")
         .and_then(Value::as_bool)
@@ -127,7 +127,7 @@ fn searched_by_hand(provider: &Value) -> Option<String> {
 }
 
 impl Medusa {
-    async fn finished(&self, series: &str, episode: &str) -> Result<bool, Failure> {
+    pub(super) async fn finished(&self, series: &str, episode: &str) -> Result<bool, Failure> {
         for _ in 0..super::SEARCH_ROUNDS {
             tokio::time::sleep(self.pause).await;
             let searches: Searches = self

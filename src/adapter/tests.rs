@@ -238,6 +238,41 @@ async fn the_request_gate_s_key_opens_the_request_operations_alone() {
     assert_eq!(about, StatusCode::BAD_REQUEST);
 }
 
+#[tokio::test]
+async fn the_request_gate_s_key_opens_neither_unqueue_nor_grab() {
+    let configuration =
+        std::env::temp_dir().join(format!("medusa-gate-again-{}", std::process::id()));
+    let gate: String = ('G'..='V').collect();
+    let written = std::fs::create_dir_all(&configuration)
+        .and_then(|()| std::fs::write(configuration.join("request.key"), format!("{gate}\n")));
+    assert!(written.is_ok());
+    let at = configuration.to_string_lossy().into_owned();
+    let mut answered = Vec::new();
+    for (operation, body) in [
+        ("unqueue", r#"{"kind":"tv","id":51,"blocklist":true}"#),
+        ("grab", r#"{"kind":"tv","id":75932,"release":"0000"}"#),
+    ] {
+        let fake = Fake::always(Answer::reply(200, "[]"));
+        let path = format!("/lemonfiber/library.curate/v1/{operation}");
+        let (status, refusal) = answered_in(&at, &fake, "POST", &path, Some(&gate), body).await;
+        let (keyed, _) = answered_in(&at, &fake, "POST", &path, Some(&a_key()), body).await;
+        answered.push((
+            operation,
+            status,
+            String::from_utf8_lossy(&refusal).contains("disallowed"),
+            keyed != StatusCode::BAD_REQUEST,
+        ));
+    }
+    let _ = std::fs::remove_dir_all(&configuration);
+    assert_eq!(
+        answered,
+        [
+            ("unqueue", StatusCode::BAD_REQUEST, true, true),
+            ("grab", StatusCode::BAD_REQUEST, true, true),
+        ]
+    );
+}
+
 #[test]
 fn an_import_waits_an_hour_unless_told_otherwise_and_never_where_told_none() {
     assert_eq!(patience(None), Ok(Some(IMPORT_PATIENCE)));

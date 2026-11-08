@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use lemonfiber_ports::http::Method;
 use lemonfiber_ports::service::Failure;
 use serde_json::{json, Map, Value};
@@ -22,6 +24,15 @@ impl Medusa {
     pub(crate) async fn followed(&self) -> Result<Vec<serde_json::Value>, Failure> {
         self.every(SERIES, "the series Medusa follows could not be read")
             .await
+    }
+
+    pub(crate) async fn tvdb_by_slug(&self) -> Result<BTreeMap<String, i64>, Failure> {
+        Ok(self
+            .series()
+            .await?
+            .into_iter()
+            .filter_map(|series| Some((series.id.slug.clone(), series.tvdb()?)))
+            .collect())
     }
 
     pub(crate) async fn slug_of(&self, tvdb: i64) -> Result<Option<String>, Failure> {

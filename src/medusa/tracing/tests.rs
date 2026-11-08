@@ -1,4 +1,5 @@
 use lemonfiber_fixtures::http::Fake;
+use lemonfiber_ports::digest::sha256;
 use lemonfiber_ports::media::Kind;
 use lemonfiber_ports::service::stage::{Outcome, Stage};
 use lemonfiber_ports::service::{
@@ -251,11 +252,48 @@ async fn each_series_stuck_in_flight_is_named_once() {
             StuckItem {
                 title: "Fawlty Towers".to_owned(),
                 stage: Stage::Downloading,
+                queued: None,
+                title_id: Some(75932),
+                release: Some(sha256("release")),
             },
             StuckItem {
                 title: "Breaking Bad".to_owned(),
                 stage: Stage::Downloading,
+                queued: None,
+                title_id: Some(81189),
+                release: Some(sha256("release")),
             },
         ])
     );
+}
+
+#[tokio::test]
+async fn a_stuck_download_with_no_release_name_or_series_held_names_neither() {
+    let fake = Fake::by_path(vec![
+        (
+            "/history?",
+            json(
+                200,
+                &json!([{ "status": 2, "season": 1, "episode": 1, "showSlug": "tvdb1", "showTitle": "Gone", "clientStatus": { "status": [16] } }]),
+            ),
+        ),
+        ("/series", json(200, &series())),
+    ]);
+    assert_eq!(
+        medusa(&fake).stuck_items(Kind::Tv).await.ok().map(|all| all
+            .into_iter()
+            .map(|one| (one.title_id, one.release))
+            .collect::<Vec<_>>()),
+        Some(vec![(None, None)])
+    );
+}
+
+#[tokio::test]
+async fn with_nothing_stuck_no_series_is_read() {
+    let fake = Fake::by_path(vec![("/history?", json(200, &json!([])))]);
+    assert_eq!(
+        medusa(&fake).stuck_items(Kind::Tv).await.ok(),
+        Some(Vec::new())
+    );
+    assert!(!fake.asked_for("/series"));
 }
