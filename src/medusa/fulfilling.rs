@@ -5,14 +5,15 @@ use lemonfiber_ports::http::Method;
 use lemonfiber_ports::media::Kind;
 use lemonfiber_ports::service::stage::Stage;
 use lemonfiber_ports::service::{
-    CuratedSeason, CuratedTitle, DownloadedEpisode, Downloading, Failure, Fulfilling, TitleRequest,
+    CuratedSeason, CuratedTitle, DownloadedEpisode, Downloading, Failure, Fulfilling, Grabbed,
+    TitleRequest,
 };
 use serde::Deserialize;
 use serde_json::{json, Map, Value};
 
 use super::series::{BACKLOG, SERIES};
 use super::wire::{Part, Series, UNASKED, WANTED};
-use super::Medusa;
+use super::{unsupported, Medusa};
 
 const SKIPPED: i64 = 5;
 
@@ -29,6 +30,8 @@ const SAVED: u64 = 200;
 const ARRIVAL_ROUNDS: usize = 30;
 
 const BEING_ADDED: &str = "isBeingAdded";
+
+const NO_UNQUEUE: &str = "Medusa cannot take a download out of the client holding it";
 
 #[derive(Deserialize)]
 struct QueueStatus {
@@ -327,12 +330,7 @@ impl Fulfilling for Medusa {
         if flights.is_empty() {
             return Ok(Vec::new());
         }
-        let held: BTreeMap<String, i64> = self
-            .series()
-            .await?
-            .into_iter()
-            .filter_map(|series| Some((series.id.slug.clone(), series.tvdb()?)))
-            .collect();
+        let held = self.tvdb_by_slug().await?;
         let slugs: BTreeSet<&str> = flights.iter().map(|flight| flight.slug.as_str()).collect();
         let mut named: BTreeMap<(String, u32, u32), String> = BTreeMap::new();
         for slug in slugs.into_iter().filter(|slug| held.contains_key(*slug)) {
@@ -368,6 +366,17 @@ impl Fulfilling for Medusa {
                 })
             })
             .collect())
+    }
+
+    async fn unqueue(&self, kind: Kind, _id: i64, _blocklist: bool) -> Result<String, Failure> {
+        Self::filing(kind)?;
+        Err(unsupported(NO_UNQUEUE))
+    }
+
+    async fn grab(&self, kind: Kind, id: i64, release: &str) -> Result<Grabbed, Failure> {
+        Self::filing(kind)?;
+        let series = self.held_series(id).await?;
+        self.grabbed_again(&series.id.slug, release).await
     }
 }
 

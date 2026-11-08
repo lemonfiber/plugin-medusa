@@ -75,6 +75,13 @@ history and the state its download handler reads from each client.
   asked; a series it holds is unpaused and has those episodes wanted, and nothing
   else changes. An episode counts as monitored unless it is skipped or ignored, or
   unaired where the series skips what airs later.
+- **A release is named by its release name** (`ARCH-R389`): its fingerprint is
+  the SHA-256 of the name Medusa's history snatched it as. Medusa has no call that
+  takes a download out of its client, so `unqueue` is answered `unsupported`.
+  `grab` finds the snatch in the series' history, takes that name off Medusa's
+  failed list, starts a manual search for its episode, or its season where it
+  was snatched for several, and snatches the offer of that name through the page
+  Medusa's interface asks; where nothing snatched or offers it, it is `gone`.
 - **An import waiting past `IMPORT_STUCK_AFTER_MINUTES` is stuck.** The
   setting `medusa:import-stuck-after` writes it, `60` by default and `0` for never;
   the adapter keeps when it first read each import as waiting, in memory.

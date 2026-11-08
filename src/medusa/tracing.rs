@@ -8,7 +8,8 @@ use lemonfiber_ports::service::{
 };
 use serde_json::Value;
 
-use super::queue::{newest_history, DOWNLOADED, FAILED, SNATCHED};
+use super::again::fingerprint;
+use super::queue::{newest_history, InFlight, DOWNLOADED, FAILED, SNATCHED};
 use super::wire::{HistoryRow, UNASKED};
 use super::Medusa;
 
@@ -151,13 +152,23 @@ impl Pipeline for Medusa {
     async fn stuck_items(&self, kind: Kind) -> Result<Vec<StuckItem>, Failure> {
         Self::filing(kind)?;
         let mut seen = BTreeSet::new();
-        Ok(self
+        let stuck: Vec<InFlight> = self
             .in_flight()
             .await?
             .into_iter()
             .filter(|flight| flight.stuck() && !flight.show_title.is_empty())
             .filter(|flight| seen.insert(flight.show_title.clone()))
+            .collect();
+        if stuck.is_empty() {
+            return Ok(Vec::new());
+        }
+        let held = self.tvdb_by_slug().await?;
+        Ok(stuck
+            .into_iter()
             .map(|flight| StuckItem {
+                queued: None,
+                title_id: held.get(&flight.slug).copied(),
+                release: fingerprint(&flight.title),
                 title: flight.show_title,
                 stage: flight.stage,
             })

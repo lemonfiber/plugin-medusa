@@ -1,0 +1,10 @@
+{
+  "recorded_from": "lscr.io/linuxserver/medusa@sha256:aad89df58a047bab3521a695f0508f2e89fc9ba1f1196866dc8e9a810fc3ae5d",
+  "note": "Medusa has no call that takes a download out of the client holding it, so this is unsupported.",
+  "request": {"method": "POST", "path": "/lemonfiber/library.curate/v1/unqueue", "accept": "application/json"},
+  "response": {
+    "status": 500,
+    "headers": {"content-type": "application/problem+json"},
+    "json": {"detail": "Medusa cannot take a download out of the client holding it", "type": "unsupported"}
+  }
+}
