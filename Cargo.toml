@@ -15,10 +15,10 @@ path = "src/main.rs"
 
 [dependencies]
 async-trait = "0.1"
-lemonfiber-adapter-kit = { git = "https://github.com/lemonfiber/lemonfiber", rev = "ffa9d036adc5b5fc661d772616fd9949fa6188cd" }
-lemonfiber-contract = { git = "https://github.com/lemonfiber/lemonfiber", rev = "ffa9d036adc5b5fc661d772616fd9949fa6188cd" }
-lemonfiber-error = { git = "https://github.com/lemonfiber/lemonfiber", rev = "ffa9d036adc5b5fc661d772616fd9949fa6188cd" }
-lemonfiber-ports = { git = "https://github.com/lemonfiber/lemonfiber", rev = "ffa9d036adc5b5fc661d772616fd9949fa6188cd" }
+lemonfiber-adapter-kit = { git = "https://github.com/lemonfiber/lemonfiber", rev = "b3a9bbe3589e079176f9cafcbc3af5eb784a406b" }
+lemonfiber-contract = { git = "https://github.com/lemonfiber/lemonfiber", rev = "b3a9bbe3589e079176f9cafcbc3af5eb784a406b" }
+lemonfiber-error = { git = "https://github.com/lemonfiber/lemonfiber", rev = "b3a9bbe3589e079176f9cafcbc3af5eb784a406b" }
+lemonfiber-ports = { git = "https://github.com/lemonfiber/lemonfiber", rev = "b3a9bbe3589e079176f9cafcbc3af5eb784a406b" }
 reqwest = { version = "0.13", default-features = false }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -28,8 +28,8 @@ tokio = { version = "1", features = ["fs", "macros", "net", "rt-multi-thread", "
 tokio = { version = "1", features = ["test-util"] }
 axum = { version = "0.8", default-features = false, features = ["http1", "tokio", "json"] }
 tower = { version = "0.5", default-features = false, features = ["util"] }
-lemonfiber-fixtures = { git = "https://github.com/lemonfiber/lemonfiber", rev = "ffa9d036adc5b5fc661d772616fd9949fa6188cd" }
-lemonfiber-plugin = { git = "https://github.com/lemonfiber/lemonfiber", rev = "ffa9d036adc5b5fc661d772616fd9949fa6188cd" }
+lemonfiber-fixtures = { git = "https://github.com/lemonfiber/lemonfiber", rev = "b3a9bbe3589e079176f9cafcbc3af5eb784a406b" }
+lemonfiber-plugin = { git = "https://github.com/lemonfiber/lemonfiber", rev = "b3a9bbe3589e079176f9cafcbc3af5eb784a406b" }
 toml = "1.1"
 
 [lints.rust]
