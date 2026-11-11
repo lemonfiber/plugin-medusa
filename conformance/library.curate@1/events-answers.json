@@ -1,0 +1,10 @@
+{
+  "recorded_from": "lscr.io/linuxserver/medusa@sha256:aad89df58a047bab3521a695f0508f2e89fc9ba1f1196866dc8e9a810fc3ae5d",
+  "note": "The adapter sets up no Medusa notifier for lemonfiber yet, so it answers unsupported and asks Medusa nothing.",
+  "request": {"method": "POST", "path": "/lemonfiber/library.curate/v1/events", "accept": "application/json"},
+  "response": {
+    "status": 500,
+    "headers": {"content-type": "application/problem+json"},
+    "json": {"detail": "this adapter does not set up a Medusa notifier for lemonfiber yet", "type": "unsupported"}
+  }
+}
