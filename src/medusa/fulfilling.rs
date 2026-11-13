@@ -2,7 +2,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use async_trait::async_trait;
 use lemonfiber_ports::http::Method;
-use lemonfiber_ports::media::Kind;
+use lemonfiber_ports::media::{Kind, TitleKind};
 use lemonfiber_ports::service::stage::Stage;
 use lemonfiber_ports::service::{
     CuratedSeason, CuratedTitle, DownloadedEpisode, Downloading, Failure, Fulfilling, Grabbed,
@@ -266,7 +266,7 @@ impl Fulfilling for Medusa {
         }
     }
 
-    async fn titles(&self, kind: Kind) -> Result<Vec<CuratedTitle>, Failure> {
+    async fn titles(&self, kind: TitleKind) -> Result<Vec<CuratedTitle>, Failure> {
         Self::filing(kind)?;
         let mut titles = Vec::new();
         for series in self.series().await? {
@@ -305,7 +305,7 @@ impl Fulfilling for Medusa {
         self.curated_from(&series, request.reference).await
     }
 
-    async fn search(&self, kind: Kind, id: i64) -> Result<(), Failure> {
+    async fn search(&self, kind: TitleKind, id: i64) -> Result<(), Failure> {
         Self::filing(kind)?;
         let series = self.held_series(id).await?;
         self.backlog(&series).await
@@ -324,7 +324,7 @@ impl Fulfilling for Medusa {
         self.endpoint.expect_success(&response)
     }
 
-    async fn downloading(&self, kind: Kind) -> Result<Vec<Downloading>, Failure> {
+    async fn downloading(&self, kind: TitleKind) -> Result<Vec<Downloading>, Failure> {
         Self::filing(kind)?;
         let flights = self.in_flight().await?;
         if flights.is_empty() {
@@ -369,12 +369,17 @@ impl Fulfilling for Medusa {
             .collect())
     }
 
-    async fn unqueue(&self, kind: Kind, _id: i64, _blocklist: bool) -> Result<String, Failure> {
+    async fn unqueue(
+        &self,
+        kind: TitleKind,
+        _id: i64,
+        _blocklist: bool,
+    ) -> Result<String, Failure> {
         Self::filing(kind)?;
         Err(unsupported(NO_UNQUEUE))
     }
 
-    async fn grab(&self, kind: Kind, id: i64, release: &str) -> Result<Grabbed, Failure> {
+    async fn grab(&self, kind: TitleKind, id: i64, release: &str) -> Result<Grabbed, Failure> {
         Self::filing(kind)?;
         let series = self.held_series(id).await?;
         self.grabbed_again(&series.id.slug, release).await

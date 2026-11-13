@@ -1,7 +1,7 @@
 use lemonfiber_fixtures::http::{Answer, Fake};
 use lemonfiber_ports::digest::sha256;
 use lemonfiber_ports::http::Method;
-use lemonfiber_ports::media::Kind;
+use lemonfiber_ports::media::TitleKind;
 use lemonfiber_ports::service::{Fulfilling as _, Grabbed};
 use serde_json::{json, Value};
 
@@ -114,7 +114,7 @@ async fn a_release_is_lifted_from_the_failed_list_searched_for_by_its_episode_an
     let fake = scripted(Script::default());
     assert_eq!(
         medusa(&fake)
-            .grab(Kind::Tv, 75932, &fingerprint())
+            .grab(TitleKind::Tv, 75932, &fingerprint())
             .await
             .ok(),
         Some(Grabbed::Grabbed)
@@ -156,7 +156,7 @@ async fn a_release_snatched_for_several_episodes_is_searched_for_by_its_season()
     });
     assert_eq!(
         medusa(&fake)
-            .grab(Kind::Tv, 75932, &fingerprint())
+            .grab(TitleKind::Tv, 75932, &fingerprint())
             .await
             .ok(),
         Some(Grabbed::Gone)
@@ -181,7 +181,7 @@ async fn a_release_its_history_never_snatched_is_gone_and_nothing_is_lifted_or_s
         });
         assert_eq!(
             medusa(&fake)
-                .grab(Kind::Tv, 75932, &fingerprint())
+                .grab(TitleKind::Tv, 75932, &fingerprint())
                 .await
                 .ok(),
             Some(Grabbed::Gone)
@@ -200,7 +200,7 @@ async fn a_release_on_no_failed_list_lifts_nothing_and_one_no_provider_offers_is
     });
     assert_eq!(
         medusa(&fake)
-            .grab(Kind::Tv, 75932, &fingerprint())
+            .grab(TitleKind::Tv, 75932, &fingerprint())
             .await
             .ok(),
         Some(Grabbed::Gone)
@@ -216,7 +216,9 @@ async fn a_search_that_does_not_finish_in_time_or_a_snatch_medusa_does_not_take_
         ..Script::default()
     });
     assert_eq!(
-        why(medusa(&fake).grab(Kind::Tv, 75932, &fingerprint()).await),
+        why(medusa(&fake)
+            .grab(TitleKind::Tv, 75932, &fingerprint())
+            .await),
         so(refused(
             "Medusa's search for the release did not finish in time"
         ))
@@ -230,7 +232,9 @@ async fn a_search_that_does_not_finish_in_time_or_a_snatch_medusa_does_not_take_
             ..Script::default()
         });
         assert_eq!(
-            why(medusa(&fake).grab(Kind::Tv, 75932, &fingerprint()).await),
+            why(medusa(&fake)
+                .grab(TitleKind::Tv, 75932, &fingerprint())
+                .await),
             so(refused(
                 "Medusa did not snatch the release a provider offered"
             ))
@@ -259,7 +263,7 @@ async fn a_failed_list_or_provider_medusa_cannot_answer_is_a_failure() {
         ]);
         assert!(
             medusa(&fake)
-                .grab(Kind::Tv, 75932, &fingerprint())
+                .grab(TitleKind::Tv, 75932, &fingerprint())
                 .await
                 .is_err(),
             "{broken}"
@@ -271,7 +275,7 @@ async fn a_failed_list_or_provider_medusa_cannot_answer_is_a_failure() {
 async fn a_series_it_does_not_hold_is_refused_before_anything_is_lifted_or_searched() {
     let fake = scripted(Script::default());
     assert_eq!(
-        why(medusa(&fake).grab(Kind::Tv, 7, &fingerprint()).await),
+        why(medusa(&fake).grab(TitleKind::Tv, 7, &fingerprint()).await),
         so(refused("Medusa holds no series with TheTVDB id 7"))
     );
     assert!(!fake.asked_for("/history/"));
@@ -282,14 +286,29 @@ async fn medusa_takes_no_download_out_of_its_client_and_files_no_films() {
     let fake = Fake::silent();
     let medusa = medusa(&fake);
     assert_eq!(
-        why(medusa.unqueue(Kind::Tv, 1, true).await),
+        why(medusa.unqueue(TitleKind::Tv, 1, true).await),
         so(unsupported(
             "Medusa cannot take a download out of the client holding it"
         ))
     );
     let film = || so(unsupported("it files no film"));
-    assert_eq!(why(medusa.unqueue(Kind::Movies, 1, false).await), film());
-    assert_eq!(why(medusa.grab(Kind::Movies, 1, "f").await), film());
+    assert_eq!(
+        why(medusa.unqueue(TitleKind::Movies, 1, false).await),
+        film()
+    );
+    assert_eq!(why(medusa.grab(TitleKind::Movies, 1, "f").await), film());
+    assert!(fake.requests().is_empty());
+}
+
+#[tokio::test]
+async fn medusa_neither_unqueues_nor_grabs_albums_or_books() {
+    let fake = Fake::silent();
+    let medusa = medusa(&fake);
+    for (kind, noun) in [(TitleKind::Music, "album"), (TitleKind::Books, "book")] {
+        let none = || so(unsupported(&format!("it files no {noun}")));
+        assert_eq!(why(medusa.unqueue(kind, 1, false).await), none());
+        assert_eq!(why(medusa.grab(kind, 1, "f").await), none());
+    }
     assert!(fake.requests().is_empty());
 }
 

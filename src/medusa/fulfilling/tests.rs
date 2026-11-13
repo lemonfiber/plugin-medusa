@@ -1,6 +1,6 @@
 use lemonfiber_fixtures::http::{Answer, Fake};
 use lemonfiber_ports::http::Method;
-use lemonfiber_ports::media::Kind;
+use lemonfiber_ports::media::{Kind, TitleKind};
 use lemonfiber_ports::service::{
     CuratedSeason, CuratedTitle, DownloadState, DownloadedEpisode, Downloading, Fulfilling as _,
     TitleRequest,
@@ -126,7 +126,7 @@ fn writes(fake: &Fake) -> Vec<(Method, String, Option<Value>)> {
 async fn every_series_it_holds_by_thetvdb_id_is_a_title_with_its_seasons() {
     let fake = holding(&[fawlty(false, "Wanted"), fawlty(true, "Skipped"), nameless()]);
     assert_eq!(
-        medusa(&fake).titles(Kind::Tv).await.ok(),
+        medusa(&fake).titles(TitleKind::Tv).await.ok(),
         Some(vec![
             titled(FAWLTY, "Fawlty Towers", 1975, true, true),
             titled(FAWLTY, "Fawlty Towers", 1975, false, false),
@@ -165,16 +165,29 @@ async fn films_are_neither_held_nor_requested() {
     let medusa = medusa(&fake);
     let none = so(unsupported("it files no film"));
     assert_eq!(why(medusa.catalogued(Kind::Movies, 1).await), none);
-    assert_eq!(why(medusa.titles(Kind::Movies).await), none);
+    assert_eq!(why(medusa.titles(TitleKind::Movies).await), none);
     assert_eq!(
         why(medusa
             .request(Kind::Movies, &asking(1, vec![], false))
             .await),
         none
     );
-    assert_eq!(why(medusa.search(Kind::Movies, 1).await), none);
+    assert_eq!(why(medusa.search(TitleKind::Movies, 1).await), none);
     assert_eq!(why(medusa.remove(Kind::Movies, 1).await), none);
-    assert_eq!(why(medusa.downloading(Kind::Movies).await), none);
+    assert_eq!(why(medusa.downloading(TitleKind::Movies).await), none);
+    assert!(asked(&fake).is_empty());
+}
+
+#[tokio::test]
+async fn albums_and_books_are_neither_listed_searched_nor_downloading() {
+    let fake = Fake::silent();
+    let medusa = medusa(&fake);
+    for (kind, noun) in [(TitleKind::Music, "album"), (TitleKind::Books, "book")] {
+        let none = || so(unsupported(&format!("it files no {noun}")));
+        assert_eq!(why(medusa.titles(kind).await), none());
+        assert_eq!(why(medusa.search(kind, 1).await), none());
+        assert_eq!(why(medusa.downloading(kind).await), none());
+    }
     assert!(asked(&fake).is_empty());
 }
 
@@ -406,7 +419,7 @@ async fn a_series_it_holds_is_searched_and_removed_with_its_files() {
         ),
     ]);
     let medusa = medusa(&fake);
-    assert!(medusa.search(Kind::Tv, FAWLTY).await.is_ok());
+    assert!(medusa.search(TitleKind::Tv, FAWLTY).await.is_ok());
     assert!(medusa.remove(Kind::Tv, FAWLTY).await.is_ok());
     assert_eq!(
         writes(&fake),
@@ -430,7 +443,7 @@ async fn a_series_it_does_not_hold_is_neither_searched_nor_removed() {
     let fake = Fake::by_route_in_turn(vec![(Method::Get, "/series?", vec![json(200, &json!([]))])]);
     let medusa = medusa(&fake);
     let none = so(refused("Medusa holds no series with TheTVDB id 81189"));
-    assert_eq!(why(medusa.search(Kind::Tv, BAD).await), none);
+    assert_eq!(why(medusa.search(TitleKind::Tv, BAD).await), none);
     assert_eq!(why(medusa.remove(Kind::Tv, BAD).await), none);
     assert!(writes(&fake).is_empty());
 }
@@ -492,7 +505,7 @@ async fn what_is_downloading_names_its_series_its_episode_and_where_it_stands() 
         ),
     ]);
     let downloading = medusa(&fake)
-        .downloading(Kind::Tv)
+        .downloading(TitleKind::Tv)
         .await
         .unwrap_or_default();
     let one = |episode: u32, left: u64, state: DownloadState, title: &str| Downloading {
@@ -526,7 +539,7 @@ async fn what_is_downloading_names_its_series_its_episode_and_where_it_stands() 
 async fn nothing_downloading_asks_for_no_series() {
     let fake = Fake::always(json(200, &json!([])));
     assert_eq!(
-        medusa(&fake).downloading(Kind::Tv).await.ok(),
+        medusa(&fake).downloading(TitleKind::Tv).await.ok(),
         Some(Vec::new())
     );
     assert_eq!(asked(&fake).len(), 1);
