@@ -19,6 +19,6 @@ jobs:
       packages: write
       id-token: write
       attestations: write
-    uses: lemonfiber/spec/.github/workflows/adapter-release.yml@628a1f51b42b212054e0cf70f6f77fd75f424a40 # v1.0.144
+    uses: lemonfiber/spec/.github/workflows/adapter-release.yml@c39b30a096b2debc080e3d945b782dc67dc20a6c # v1.0.147
     secrets:
       RELEASE_APP_KEY: ${{ secrets.RELEASE_APP_KEY }}
