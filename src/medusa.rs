@@ -9,7 +9,7 @@ use std::time::Duration;
 use lemonfiber_adapter_kit::credential::Holding;
 use lemonfiber_adapter_kit::endpoint::{form_encoded, Endpoint};
 use lemonfiber_ports::http::{Http, Method, Request, Response, JSON};
-use lemonfiber_ports::media::Kind;
+use lemonfiber_ports::media::TitleKind;
 use lemonfiber_ports::service::{Failure, Record};
 use serde_json::Value;
 
@@ -248,10 +248,10 @@ impl Medusa {
         Ok(response.body)
     }
 
-    fn filing(kind: Kind) -> Result<(), Failure> {
-        match kind {
-            Kind::Tv => Ok(()),
-            Kind::Movies => Err(unsupported(&format!("it files no {}", kind.noun()))),
+    fn filing(kind: impl Into<TitleKind>) -> Result<(), Failure> {
+        match kind.into() {
+            TitleKind::Tv => Ok(()),
+            other => Err(unsupported(&format!("it files no {}", other.noun()))),
         }
     }
 

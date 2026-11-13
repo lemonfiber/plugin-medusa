@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use async_trait::async_trait;
-use lemonfiber_ports::media::Kind;
+use lemonfiber_ports::media::TitleKind;
 use lemonfiber_ports::service::stage::{Outcome, HISTORY_HORIZON};
 use lemonfiber_ports::service::{
     Failure, FoundItem, ItemPart, Pipeline, QueueItem, StuckItem, TraceEvent,
@@ -46,7 +46,7 @@ impl Medusa {
 
 #[async_trait]
 impl Pipeline for Medusa {
-    async fn library(&self, kind: Kind) -> Result<Vec<FoundItem>, Failure> {
+    async fn library(&self, kind: TitleKind) -> Result<Vec<FoundItem>, Failure> {
         Self::filing(kind)?;
         Ok(self
             .series()
@@ -63,7 +63,7 @@ impl Pipeline for Medusa {
             .collect())
     }
 
-    async fn find_items(&self, kind: Kind, term: &str) -> Result<Vec<FoundItem>, Failure> {
+    async fn find_items(&self, kind: TitleKind, term: &str) -> Result<Vec<FoundItem>, Failure> {
         let needle = term.to_lowercase();
         Ok(self
             .library(kind)
@@ -73,7 +73,7 @@ impl Pipeline for Medusa {
             .collect())
     }
 
-    async fn item_history(&self, kind: Kind, id: i64) -> Result<Vec<TraceEvent>, Failure> {
+    async fn item_history(&self, kind: TitleKind, id: i64) -> Result<Vec<TraceEvent>, Failure> {
         Self::filing(kind)?;
         let Some(slug) = self.slug_of(id).await? else {
             return Ok(Vec::new());
@@ -97,7 +97,7 @@ impl Pipeline for Medusa {
             .collect())
     }
 
-    async fn item_queue(&self, kind: Kind, id: i64) -> Result<Vec<QueueItem>, Failure> {
+    async fn item_queue(&self, kind: TitleKind, id: i64) -> Result<Vec<QueueItem>, Failure> {
         Self::filing(kind)?;
         let Some(slug) = self.slug_of(id).await? else {
             return Ok(Vec::new());
@@ -124,7 +124,7 @@ impl Pipeline for Medusa {
 
     async fn item_parts(
         &self,
-        kind: Kind,
+        kind: TitleKind,
         id: i64,
         season: Option<u32>,
     ) -> Result<Vec<ItemPart>, Failure> {
@@ -149,7 +149,7 @@ impl Pipeline for Medusa {
             .collect())
     }
 
-    async fn stuck_items(&self, kind: Kind) -> Result<Vec<StuckItem>, Failure> {
+    async fn stuck_items(&self, kind: TitleKind) -> Result<Vec<StuckItem>, Failure> {
         Self::filing(kind)?;
         let mut seen = BTreeSet::new();
         let stuck: Vec<InFlight> = self

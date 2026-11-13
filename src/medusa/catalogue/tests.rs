@@ -1,6 +1,6 @@
 use lemonfiber_fixtures::http::{Answer, Fake};
 use lemonfiber_ports::http::Method;
-use lemonfiber_ports::media::{Format, Kind};
+use lemonfiber_ports::media::{Format, Kind, TitleKind};
 use lemonfiber_ports::service::{
     AddPlan, Catalogue as _, CatalogueEntry, Maintenance as _, MusicQuality as _,
     QualityReleases as _, ReleaseProbe,
@@ -111,9 +111,22 @@ async fn films_are_neither_looked_up_planned_added_nor_searched() {
         so(unsupported("it files no film"))
     );
     assert_eq!(
-        why(medusa.probe_releases(Kind::Movies).await),
+        why(medusa.probe_releases(TitleKind::Movies).await),
         so(unsupported("it files no film"))
     );
+    assert!(fake.requests().is_empty());
+}
+
+#[tokio::test]
+async fn no_releases_are_probed_for_albums_or_books() {
+    let fake = Fake::always(Answer::reply(200, "[]"));
+    let medusa = medusa(&fake);
+    for (kind, noun) in [(TitleKind::Music, "album"), (TitleKind::Books, "book")] {
+        assert_eq!(
+            why(medusa.probe_releases(kind).await),
+            so(unsupported(&format!("it files no {noun}")))
+        );
+    }
     assert!(fake.requests().is_empty());
 }
 
@@ -385,7 +398,7 @@ async fn the_first_wanted_episode_is_searched_and_what_was_found_judged_by_its_q
     ] {
         let fake = probing(one, two);
         assert_eq!(
-            medusa(&fake).probe_releases(Kind::Tv).await.ok(),
+            medusa(&fake).probe_releases(TitleKind::Tv).await.ok(),
             Some(probe)
         );
         let paths: Vec<(Method, String, Option<Value>)> = asked(&fake);
@@ -407,7 +420,7 @@ async fn the_first_wanted_episode_is_searched_and_what_was_found_judged_by_its_q
 async fn nothing_wanted_is_nothing_searched() {
     let fake = Fake::always(json(200, &json!([{ "slug": "tvdb2", "episodes": [] }])));
     assert_eq!(
-        medusa(&fake).probe_releases(Kind::Tv).await.ok(),
+        medusa(&fake).probe_releases(TitleKind::Tv).await.ok(),
         Some(ReleaseProbe::NothingWanted)
     );
     assert_eq!(fake.requests().len(), 1);
@@ -425,7 +438,7 @@ async fn a_search_that_does_not_finish_in_time_is_refused() {
         (None, "/search/tvdb1", searched("searching")),
     ]);
     assert_eq!(
-        why(medusa(&fake).probe_releases(Kind::Tv).await),
+        why(medusa(&fake).probe_releases(TitleKind::Tv).await),
         so(refused(
             "Medusa's search for releases did not finish in time"
         ))
@@ -446,5 +459,8 @@ async fn a_search_that_does_not_finish_in_time_is_refused() {
         ),
         (None, "/search/tvdb1", json(200, &json!({ "results": [] }))),
     ]);
-    assert!(medusa(&elsewhere).probe_releases(Kind::Tv).await.is_err());
+    assert!(medusa(&elsewhere)
+        .probe_releases(TitleKind::Tv)
+        .await
+        .is_err());
 }

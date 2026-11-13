@@ -1,6 +1,6 @@
 use lemonfiber_fixtures::http::Fake;
 use lemonfiber_ports::digest::sha256;
-use lemonfiber_ports::media::Kind;
+use lemonfiber_ports::media::TitleKind;
 use lemonfiber_ports::service::stage::{Outcome, Stage};
 use lemonfiber_ports::service::{
     FoundItem, ItemPart, Pipeline as _, QueueItem, StuckItem, TraceEvent,
@@ -84,7 +84,7 @@ fn tracing() -> std::sync::Arc<Fake> {
 async fn the_series_it_follows_are_found_by_their_thetvdb_id() {
     let fake = tracing();
     assert_eq!(
-        medusa(&fake).library(Kind::Tv).await.ok(),
+        medusa(&fake).library(TitleKind::Tv).await.ok(),
         Some(vec![
             FoundItem {
                 id: 75932,
@@ -102,7 +102,7 @@ async fn the_series_it_follows_are_found_by_their_thetvdb_id() {
     );
     assert_eq!(
         medusa(&fake)
-            .find_items(Kind::Tv, "fawlty")
+            .find_items(TitleKind::Tv, "fawlty")
             .await
             .ok()
             .map(|found| found.into_iter().map(|one| one.id).collect::<Vec<_>>()),
@@ -115,11 +115,30 @@ async fn films_are_not_traced() {
     let fake = Fake::silent();
     let medusa = medusa(&fake);
     let film = || so(unsupported("it files no film"));
-    assert_eq!(why(medusa.library(Kind::Movies).await), film());
-    assert_eq!(why(medusa.item_history(Kind::Movies, 1).await), film());
-    assert_eq!(why(medusa.item_queue(Kind::Movies, 1).await), film());
-    assert_eq!(why(medusa.item_parts(Kind::Movies, 1, None).await), film());
-    assert_eq!(why(medusa.stuck_items(Kind::Movies).await), film());
+    assert_eq!(why(medusa.library(TitleKind::Movies).await), film());
+    assert_eq!(why(medusa.item_history(TitleKind::Movies, 1).await), film());
+    assert_eq!(why(medusa.item_queue(TitleKind::Movies, 1).await), film());
+    assert_eq!(
+        why(medusa.item_parts(TitleKind::Movies, 1, None).await),
+        film()
+    );
+    assert_eq!(why(medusa.stuck_items(TitleKind::Movies).await), film());
+    assert!(fake.requests().is_empty());
+}
+
+#[tokio::test]
+async fn albums_and_books_are_not_traced() {
+    let fake = Fake::silent();
+    let medusa = medusa(&fake);
+    for (kind, noun) in [(TitleKind::Music, "album"), (TitleKind::Books, "book")] {
+        let none = || so(unsupported(&format!("it files no {noun}")));
+        assert_eq!(why(medusa.library(kind).await), none());
+        assert_eq!(why(medusa.find_items(kind, "x").await), none());
+        assert_eq!(why(medusa.item_history(kind, 1).await), none());
+        assert_eq!(why(medusa.item_queue(kind, 1).await), none());
+        assert_eq!(why(medusa.item_parts(kind, 1, None).await), none());
+        assert_eq!(why(medusa.stuck_items(kind).await), none());
+    }
     assert!(fake.requests().is_empty());
 }
 
@@ -128,12 +147,15 @@ async fn a_series_it_does_not_follow_has_no_history_queue_or_parts() {
     let fake = tracing();
     let medusa = medusa(&fake);
     assert_eq!(
-        medusa.item_history(Kind::Tv, 0).await.ok(),
+        medusa.item_history(TitleKind::Tv, 0).await.ok(),
         Some(Vec::new())
     );
-    assert_eq!(medusa.item_queue(Kind::Tv, 0).await.ok(), Some(Vec::new()));
     assert_eq!(
-        medusa.item_parts(Kind::Tv, 0, None).await.ok(),
+        medusa.item_queue(TitleKind::Tv, 0).await.ok(),
+        Some(Vec::new())
+    );
+    assert_eq!(
+        medusa.item_parts(TitleKind::Tv, 0, None).await.ok(),
         Some(Vec::new())
     );
     assert!(!fake.asked_for("/history"));
@@ -144,7 +166,7 @@ async fn a_series_it_does_not_follow_has_no_history_queue_or_parts() {
 async fn the_history_of_a_series_names_each_grab_download_and_failure_by_its_episode() {
     let fake = tracing();
     assert_eq!(
-        medusa(&fake).item_history(Kind::Tv, 75932).await.ok(),
+        medusa(&fake).item_history(TitleKind::Tv, 75932).await.ok(),
         Some(vec![
             TraceEvent {
                 outcome: Outcome::Imported,
@@ -180,7 +202,7 @@ async fn the_history_of_a_series_names_each_grab_download_and_failure_by_its_epi
 async fn what_is_in_flight_for_a_series_is_named_by_its_episode() {
     let fake = tracing();
     assert_eq!(
-        medusa(&fake).item_queue(Kind::Tv, 75932).await.ok(),
+        medusa(&fake).item_queue(TitleKind::Tv, 75932).await.ok(),
         Some(vec![
             QueueItem {
                 part: Some(180_446),
@@ -199,7 +221,7 @@ async fn what_is_in_flight_for_a_series_is_named_by_its_episode() {
         ("/series", json(200, &series())),
     ]);
     assert_eq!(
-        medusa(&idle).item_queue(Kind::Tv, 75932).await.ok(),
+        medusa(&idle).item_queue(TitleKind::Tv, 75932).await.ok(),
         Some(Vec::new())
     );
     assert!(!idle.asked_for("/episodes"));
@@ -210,7 +232,7 @@ async fn the_episodes_of_a_series_are_its_parts() {
     let fake = tracing();
     assert_eq!(
         medusa(&fake)
-            .item_parts(Kind::Tv, 75932, Some(1))
+            .item_parts(TitleKind::Tv, 75932, Some(1))
             .await
             .ok(),
         Some(vec![
@@ -247,7 +269,7 @@ async fn the_episodes_of_a_series_are_its_parts() {
 async fn each_series_stuck_in_flight_is_named_once() {
     let fake = tracing();
     assert_eq!(
-        medusa(&fake).stuck_items(Kind::Tv).await.ok(),
+        medusa(&fake).stuck_items(TitleKind::Tv).await.ok(),
         Some(vec![
             StuckItem {
                 title: "Fawlty Towers".to_owned(),
@@ -280,10 +302,14 @@ async fn a_stuck_download_with_no_release_name_or_series_held_names_neither() {
         ("/series", json(200, &series())),
     ]);
     assert_eq!(
-        medusa(&fake).stuck_items(Kind::Tv).await.ok().map(|all| all
-            .into_iter()
-            .map(|one| (one.title_id, one.release))
-            .collect::<Vec<_>>()),
+        medusa(&fake)
+            .stuck_items(TitleKind::Tv)
+            .await
+            .ok()
+            .map(|all| all
+                .into_iter()
+                .map(|one| (one.title_id, one.release))
+                .collect::<Vec<_>>()),
         Some(vec![(None, None)])
     );
 }
@@ -292,7 +318,7 @@ async fn a_stuck_download_with_no_release_name_or_series_held_names_neither() {
 async fn with_nothing_stuck_no_series_is_read() {
     let fake = Fake::by_path(vec![("/history?", json(200, &json!([])))]);
     assert_eq!(
-        medusa(&fake).stuck_items(Kind::Tv).await.ok(),
+        medusa(&fake).stuck_items(TitleKind::Tv).await.ok(),
         Some(Vec::new())
     );
     assert!(!fake.asked_for("/series"));

@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use lemonfiber_adapter_kit::endpoint::form_encoded;
 use lemonfiber_ports::http::Method;
-use lemonfiber_ports::media::{Format, Kind};
+use lemonfiber_ports::media::{Format, Kind, TitleKind};
 use lemonfiber_ports::service::{
     AddPlan, Added, Catalogue, CatalogueEntry, Failure, Maintenance, MusicQuality, QualityReleases,
     ReleaseProbe,
@@ -264,7 +264,7 @@ impl Maintenance for Medusa {
 
 #[async_trait]
 impl QualityReleases for Medusa {
-    async fn probe_releases(&self, kind: Kind) -> Result<ReleaseProbe, Failure> {
+    async fn probe_releases(&self, kind: TitleKind) -> Result<ReleaseProbe, Failure> {
         Self::filing(kind)?;
         let wanted: Vec<BacklogSeries> = self
             .read(WANTED_LIST, "what Medusa wants could not be read")
