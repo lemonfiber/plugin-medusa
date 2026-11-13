@@ -3,11 +3,12 @@
 //! answer.
 
 use std::collections::BTreeMap;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, OnceLock};
 use std::time::Duration;
 
 use lemonfiber_adapter_kit::credential::Holding;
 use lemonfiber_adapter_kit::endpoint::{form_encoded, Endpoint};
+use lemonfiber_adapter_kit::recounting::Recounter;
 use lemonfiber_ports::http::{Http, Method, Request, Response, JSON};
 use lemonfiber_ports::media::TitleKind;
 use lemonfiber_ports::service::{Failure, Record};
@@ -25,6 +26,8 @@ mod recounting;
 mod series;
 mod tracing;
 mod wire;
+
+pub use recounting::Happenings;
 
 /// What every failure is blamed on.
 pub const SERVICE: &str = "medusa";
@@ -69,6 +72,7 @@ pub struct Medusa {
     patience: Option<Duration>,
     pending: Mutex<BTreeMap<String, tokio::time::Instant>>,
     lookup: Option<Arc<crate::thetvdb::TheTvdb>>,
+    recounter: OnceLock<Recounter>,
 }
 
 impl Medusa {
@@ -91,6 +95,7 @@ impl Medusa {
             patience: Some(IMPORT_PATIENCE),
             pending: Mutex::new(BTreeMap::new()),
             lookup: None,
+            recounter: OnceLock::new(),
         }
     }
 

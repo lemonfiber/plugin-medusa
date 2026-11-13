@@ -9,6 +9,8 @@
 # and running the substitute proof end to end are the core's.
 
 requirement = [
+  { id = "ARCH-R411", state = "partial", evidence = ["src/medusa/recounting.rs", "src/adapter.rs", "src/adapter/tests.rs::the_recounting_kit_answers_events_through_its_recounter", "conformance/library.curate@1/events-answers.json"] },
+  { id = "ARCH-R412", state = "partial", evidence = ["src/medusa/recounting.rs", "src/medusa/recounting/tests.rs::what_followed_the_cursor_comes_oldest_first_imports_and_failures_told", "src/medusa/recounting/tests.rs::a_full_page_reads_on_until_a_row_older_than_the_cursor_s", "src/medusa/recounting/tests.rs::a_cursor_medusa_no_longer_holds_or_cannot_be_read_is_not_held"] },
   { id = "F14-R6", state = "partial", evidence = ["src/adapter.rs", "tests/conformance.rs::every_case_its_upstream_is_asked_is_recorded_and_read_as_the_core_reads_it"] },
   { id = "F14-R13", state = "partial", evidence = ["src/adapter.rs", "tests/conformance.rs::the_adapter_names_the_release_and_digest_its_recordings_were_taken_from"] },
   { id = "F14-R14", state = "partial", evidence = ["plugin.toml", "src/medusa.rs", "conformance/library.curate@1"] },

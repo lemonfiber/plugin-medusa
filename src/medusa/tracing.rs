@@ -9,7 +9,7 @@ use lemonfiber_ports::service::{
 use serde_json::Value;
 
 use super::again::fingerprint;
-use super::queue::{newest_history, InFlight, DOWNLOADED, FAILED, SNATCHED};
+use super::queue::{newest_history, InFlight, DOWNLOADED, FAILED, HISTORY_UNREAD, SNATCHED};
 use super::wire::{HistoryRow, UNASKED};
 use super::Medusa;
 
@@ -81,7 +81,7 @@ impl Pipeline for Medusa {
         let rows: Vec<HistoryRow> = self
             .read(
                 &format!("/history/{slug}?{}", newest_history(HISTORY_HORIZON)),
-                "Medusa's history could not be read",
+                HISTORY_UNREAD,
             )
             .await?;
         let numbered = self.numbered(&slug).await?;
