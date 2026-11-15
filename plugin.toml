@@ -129,12 +129,12 @@ expect  = { status = 200, json = { success = false } }
 [[ask]]
 service    = "medusa"
 capability = "download.usenet"
-native     = "sabnzbd"
+native     = ["sabnzbd", "nzbget"]
 
 [[ask]]
 service    = "medusa"
 capability = "download.torrent"
-native     = "qbittorrent"
+native     = ["qbittorrent", "transmission"]
 
 [[ask]]
 service    = "medusa"
