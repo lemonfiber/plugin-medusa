@@ -74,7 +74,12 @@ async fn serve(settings: &Settings) -> Result<(), String> {
         .map_err(|why| format!("{} could not be listened on: {why}", settings.listen))?;
     eprintln!("medusa-adapter: answering on {}", settings.listen);
     lemonfiber_adapter_kit::serving(
-        medusa_adapter::adapter::kit(key, Arc::new(medusa), settings.configuration.clone()),
+        medusa_adapter::adapter::recounting_kit(
+            key,
+            Arc::new(medusa),
+            settings.configuration.clone(),
+            Arc::new(Logged),
+        ),
         listener,
         stopped(),
     )
@@ -103,6 +108,15 @@ async fn health(settings: &Settings) -> Result<(), String> {
         Ok(())
     } else {
         Err(format!("it answered {}", answer.status()))
+    }
+}
+
+struct Logged;
+
+#[async_trait::async_trait]
+impl lemonfiber_ports::narration::Narrator for Logged {
+    async fn say(&self, said: &str) {
+        eprintln!("medusa-adapter: {said}");
     }
 }
 

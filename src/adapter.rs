@@ -4,11 +4,13 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
+use lemonfiber_adapter_kit::recounting::Recounter;
 use lemonfiber_adapter_kit::{Kit, Readiness};
 use lemonfiber_contract::adapter::{About, Release};
 use lemonfiber_contract::capabilities::{indexer, library};
+use lemonfiber_ports::narration::Narrator;
 
-use crate::medusa::{Medusa, IMPORT_PATIENCE};
+use crate::medusa::{Happenings, Medusa, IMPORT_PATIENCE};
 use crate::thetvdb::SignIn;
 
 /// The variable of the adapter's environment holding how many minutes an import may wait
@@ -121,13 +123,42 @@ pub fn thetvdb(
 /// answering the request gate under each key the core wrote for it in `configuration`.
 #[must_use]
 pub fn kit(key: String, medusa: Arc<Medusa>, configuration: impl Into<PathBuf>) -> Kit {
+    serving(Kit::new(key, about()), medusa, configuration.into())
+}
+
+/// The contracts as `kit` serves them, telling the core what happened with the cursor
+/// kept beneath `configuration` and what it says said to `narrator`.
+#[must_use]
+pub fn recounting_kit(
+    key: String,
+    medusa: Arc<Medusa>,
+    configuration: impl Into<PathBuf>,
+    narrator: Arc<dyn Narrator>,
+) -> Kit {
+    let configuration = configuration.into();
+    let recounter = Recounter::new(
+        crate::medusa::SERVICE,
+        &configuration,
+        Arc::new(Happenings(Arc::downgrade(&medusa))),
+        narrator,
+    );
+    medusa.recounted_by(recounter.clone());
+    serving(
+        Kit::new(key, about()).recounted_by(recounter),
+        medusa,
+        configuration,
+    )
+}
+
+/// `kit` ready while Medusa answers, answering the request gate under each key the core
+/// wrote for it in `configuration`, and serving the contracts from `medusa`.
+fn serving(kit: Kit, medusa: Arc<Medusa>, configuration: PathBuf) -> Kit {
     let asked = Arc::clone(&medusa);
     let ready: Readiness = Arc::new(move || {
         let asked = Arc::clone(&asked);
         Box::pin(async move { asked.answers().await })
     });
-    Kit::new(key, about())
-        .ready_when(ready)
+    kit.ready_when(ready)
         .asked_by_the_gate(configuration)
         .serving(indexer::pull::served(Arc::clone(&medusa)))
         .serving(library::curate::served(medusa))

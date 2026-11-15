@@ -9,7 +9,7 @@ use serde::Deserialize;
 use serde_json::json;
 
 use super::catalogue::{searched_by_hand, MANUAL, NOT_FOUND};
-use super::queue::{newest_history, SNATCHED};
+use super::queue::{newest_history, HISTORY_UNREAD, SNATCHED};
 use super::series::PROVIDERS;
 use super::wire::HistoryRow;
 use super::Medusa;
@@ -79,7 +79,7 @@ impl Medusa {
         let rows: Vec<HistoryRow> = self
             .read(
                 &format!("/history/{slug}?{}", newest_history(HISTORY_HORIZON)),
-                "Medusa's history could not be read",
+                HISTORY_UNREAD,
             )
             .await?;
         let snatched: Vec<HistoryRow> = rows

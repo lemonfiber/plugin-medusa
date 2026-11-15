@@ -137,6 +137,8 @@ pub(crate) struct ClientStatus {
 #[serde(rename_all = "camelCase")]
 pub(crate) struct HistoryRow {
     #[serde(default)]
+    pub(crate) id: u64,
+    #[serde(default)]
     pub(crate) status: i64,
     #[serde(default)]
     pub(crate) action_date: Value,
@@ -154,6 +156,8 @@ pub(crate) struct HistoryRow {
     pub(crate) show_slug: Option<String>,
     #[serde(default)]
     pub(crate) show_title: String,
+    #[serde(default)]
+    pub(crate) episode_title: String,
     #[serde(default)]
     pub(crate) client_status: Option<ClientStatus>,
 }

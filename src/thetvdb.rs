@@ -136,6 +136,7 @@ impl TheTvdb {
                 headers: vec![(CONTENT_TYPE.to_owned(), JSON.to_owned())],
                 body: Some(body.to_string()),
                 pinned: None,
+                deadline: None,
             })
             .await?;
         let signed: Signed = self
@@ -154,6 +155,7 @@ impl TheTvdb {
                 headers: vec![(AUTHORIZATION.to_owned(), format!("Bearer {token}"))],
                 body: None,
                 pinned: None,
+                deadline: None,
             })
             .await
     }

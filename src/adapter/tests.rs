@@ -320,3 +320,31 @@ fn the_thetvdb_lookup_is_off_unless_switched_on_with_what_it_signs_in_with() {
         Err("THETVDB_LOOKUP is \"yes\", not off, on or on-with-pin".to_owned())
     );
 }
+
+#[tokio::test]
+async fn the_recounting_kit_answers_events_through_its_recounter() {
+    use lemonfiber_ports::service::{Failure, Recounting as _};
+    let dir = lemonfiber_fixtures::scratch::Scratch::new("medusa-recounting-kit");
+    let fake = Fake::silent();
+    let medusa = medusa(&fake);
+    let _kit = super::recounting_kit(
+        a_key(),
+        Arc::clone(&medusa),
+        dir.path(),
+        Arc::new(lemonfiber_ports::narration::Silent),
+    );
+    assert_eq!(medusa.events(None, None, None, None).await.ok(), Some(None));
+    let partial = medusa
+        .events(
+            Some("https://core.invalid/api/notify/events"),
+            None,
+            None,
+            None,
+        )
+        .await;
+    assert!(
+        matches!(&partial, Err(Failure::Disallowed { service, .. }) if service == "medusa"),
+        "{partial:?}"
+    );
+    assert!(fake.requests().is_empty());
+}

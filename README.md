@@ -40,6 +40,27 @@ household's request reaches Medusa only for a series it already holds. With
 and seasons of a series Medusa does not hold, under your own TheTVDB API key,
 and that series can be requested too. It never uses the key Medusa ships with.
 
+## How it tells lemonfiber what happened
+
+Asked by lemonfiber's `events`, the adapter tells it each episode Medusa imports
+and each grab or import that fails, naming the series by its TheTVDB id and the
+episode as Medusa's history names it. It never names a member or an account.
+
+Medusa's notifiers post only to fixed services' addresses, so Medusa never
+pushes to the adapter. The adapter reads Medusa's history every interval
+lemonfiber asks (`LEMONFIBER_EVENTS_POLL`, 60 seconds where unset), and tells
+what follows the newest row it already told: a `Downloaded` row as `imported`
+and a `Failed` row as `failed`. Medusa's history names no reason for a failure,
+so `failed` carries none, and Medusa's API names no problem with itself, so the
+adapter sends no `health`.
+
+- **The key it tells lemonfiber what happened with**, which lemonfiber mints and
+  writes to `config/medusa-adapter/events.key` each time it wires the stack.
+- **Its cursor**, in `config/medusa-adapter/events.json`: where lemonfiber is
+  told to send, and the id of the newest history row already told.
+
+The first ask sends nothing older than that moment, and a stop drops the cursor.
+
 ## Settings
 
 | Setting | Default | What it decides |

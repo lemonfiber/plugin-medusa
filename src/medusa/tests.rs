@@ -276,23 +276,3 @@ fn it_files_series_and_follows_series_alone() {
         so(unsupported("it holds no films"))
     );
 }
-
-#[tokio::test]
-async fn asked_to_tell_the_core_what_happened_it_says_it_cannot_yet_and_asks_medusa_nothing() {
-    use lemonfiber_ports::service::Recounting as _;
-    let fake = Arc::new(Fake::in_turn(Vec::new()));
-    let said = medusa(&fake)
-        .events(
-            Some("https://core.invalid/api/notify/events"),
-            Some(&"ab".repeat(32)),
-            Some("key"),
-        )
-        .await;
-    assert_eq!(
-        why(said),
-        so(unsupported(
-            "this adapter does not set up a Medusa notifier for lemonfiber yet"
-        ))
-    );
-    assert!(fake.requests().is_empty());
-}

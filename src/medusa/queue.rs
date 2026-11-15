@@ -42,6 +42,8 @@ const OVER: i64 = POSTPROCESSED | ABORTED | REMOVED | SEED_ACTION;
 
 const HISTORY_DEPTH: usize = 1000;
 
+pub(crate) const HISTORY_UNREAD: &str = "Medusa's history could not be read";
+
 const BLOCKED: (&str, &str) = ("warning", "importBlocked");
 
 pub(crate) fn newest_history(depth: usize) -> String {
@@ -174,7 +176,7 @@ impl Medusa {
         let rows: Vec<HistoryRow> = self
             .read(
                 &format!("/history?{}", newest_history(HISTORY_DEPTH)),
-                "Medusa's history could not be read",
+                HISTORY_UNREAD,
             )
             .await?;
         let mut flights = in_flight(rows);
