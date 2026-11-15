@@ -107,7 +107,7 @@ async fn films_are_neither_looked_up_planned_added_nor_searched() {
         so(unsupported("it files no film"))
     );
     assert_eq!(
-        why(medusa.search_upgrades(Kind::Movies).await),
+        why(medusa.search_upgrades(TitleKind::Movies).await),
         so(unsupported("it files no film"))
     );
     assert_eq!(
@@ -261,7 +261,7 @@ async fn upgrades_are_searched_by_a_backlog_search_of_each_series_it_is_not_paus
             Answer::reply(202, "\"Backlog search started\""),
         ),
     ]);
-    assert!(medusa(&fake).search_upgrades(Kind::Tv).await.is_ok());
+    assert!(medusa(&fake).search_upgrades(TitleKind::Tv).await.is_ok());
     assert_eq!(
         asked(&fake)
             .into_iter()
@@ -292,11 +292,14 @@ async fn upgrades_are_searched_by_a_backlog_search_of_each_series_it_is_not_paus
         ),
     ]);
     assert_eq!(
-        why(medusa(&refusing).search_upgrades(Kind::Tv).await),
+        why(medusa(&refusing).search_upgrades(TitleKind::Tv).await),
         so(refused("HTTP 404: Series not found"))
     );
     let nothing = Fake::always(json(200, &json!([])));
-    assert!(medusa(&nothing).search_upgrades(Kind::Tv).await.is_ok());
+    assert!(medusa(&nothing)
+        .search_upgrades(TitleKind::Tv)
+        .await
+        .is_ok());
     assert_eq!(nothing.requests().len(), 1);
 }
 
@@ -463,4 +466,14 @@ async fn a_search_that_does_not_finish_in_time_is_refused() {
         .probe_releases(TitleKind::Tv)
         .await
         .is_err());
+}
+
+#[tokio::test]
+async fn what_it_holds_below_its_cutoff_is_unsupported_and_nothing_is_asked() {
+    let fake = Fake::silent();
+    assert_eq!(
+        why(medusa(&fake).cutoff_unmet(TitleKind::Tv).await),
+        so(unsupported(super::NO_CUTOFF))
+    );
+    assert!(fake.requests().is_empty());
 }

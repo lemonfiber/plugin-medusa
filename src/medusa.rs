@@ -151,6 +151,7 @@ impl Medusa {
             headers,
             body: body.map(Value::to_string),
             pinned: None,
+            deadline: None,
         })
     }
 
@@ -223,6 +224,7 @@ impl Medusa {
                 ("password", &password),
             ])),
             pinned: None,
+            deadline: None,
         };
         let response = self.endpoint.send(&request).await?;
         let cookies: Vec<&str> = response
@@ -247,6 +249,7 @@ impl Medusa {
             headers: vec![(COOKIE.to_owned(), session.to_owned())],
             body: None,
             pinned: None,
+            deadline: None,
         };
         let response = self.endpoint.send(&request).await?;
         self.endpoint.expect_success(&response)?;

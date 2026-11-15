@@ -286,7 +286,14 @@ impl PullsIndexers for Medusa {
             _ => Err(unsupported(PULLS_FROM)),
         }
     }
+
+    async fn pull(&self) -> Result<(), Failure> {
+        Err(unsupported(NO_PULL))
+    }
 }
+
+/// Why Medusa is not asked to read its indexers again.
+const NO_PULL: &str = "Medusa reads an aggregator's indexers only as they are added to it, and has no way to be asked to read them again";
 
 #[cfg(test)]
 mod tests;

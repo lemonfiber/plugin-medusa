@@ -6,6 +6,7 @@ use lemonfiber_ports::service::stage::{Outcome, HISTORY_HORIZON};
 use lemonfiber_ports::service::{
     Failure, FoundItem, ItemPart, Pipeline, QueueItem, StuckItem, TraceEvent,
 };
+use lemonfiber_ports::Instant;
 use serde_json::Value;
 
 use super::again::fingerprint;
@@ -25,13 +26,31 @@ fn outcome(status: i64) -> Option<Outcome> {
     }
 }
 
-fn said(at: &Value) -> String {
-    match at {
-        Value::String(at) => at.clone(),
-        Value::Null => String::new(),
-        other => other.to_string(),
+/// The instant Medusa's `actionDate` names, its fourteen digits of the year down to the
+/// second, where it names one.
+fn said(at: &Value) -> Option<Instant> {
+    let digits = match at {
+        Value::Number(at) => at.to_string(),
+        Value::String(at) => at.trim().to_owned(),
+        _ => return None,
+    };
+    if digits.len() != STAMP_DIGITS || !digits.bytes().all(|digit| digit.is_ascii_digit()) {
+        return None;
     }
+    let part = |from: usize, to: usize| digits.get(from..to).unwrap_or_default();
+    Instant::from_service_text(&format!(
+        "{}-{}-{}T{}:{}:{}",
+        part(0, 4),
+        part(4, 6),
+        part(6, 8),
+        part(8, 10),
+        part(10, 12),
+        part(12, 14)
+    ))
 }
+
+/// How many digits Medusa writes an `actionDate` in: the year down to the second.
+const STAMP_DIGITS: usize = 14;
 
 impl Medusa {
     async fn numbered(&self, slug: &str) -> Result<BTreeMap<(u32, u32), i64>, Failure> {

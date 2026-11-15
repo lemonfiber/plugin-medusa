@@ -170,27 +170,27 @@ async fn the_history_of_a_series_names_each_grab_download_and_failure_by_its_epi
         Some(vec![
             TraceEvent {
                 outcome: Outcome::Imported,
-                at: "20261106193809".to_owned(),
+                at: lemonfiber_ports::Instant::from_service_text("2026-11-06T19:38:09"),
                 part: Some(180_445),
             },
             TraceEvent {
                 outcome: Outcome::Grabbed,
-                at: "20261106193809".to_owned(),
+                at: lemonfiber_ports::Instant::from_service_text("2026-11-06T19:38:09"),
                 part: Some(180_446),
             },
             TraceEvent {
                 outcome: Outcome::DownloadFailed,
-                at: "20261106193809".to_owned(),
+                at: lemonfiber_ports::Instant::from_service_text("2026-11-06T19:38:09"),
                 part: None,
             },
             TraceEvent {
                 outcome: Outcome::Grabbed,
-                at: "yesterday".to_owned(),
+                at: None,
                 part: Some(180_447),
             },
             TraceEvent {
                 outcome: Outcome::Grabbed,
-                at: String::new(),
+                at: None,
                 part: Some(180_447),
             },
         ])

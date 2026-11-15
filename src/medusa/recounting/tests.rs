@@ -180,9 +180,9 @@ async fn a_full_page_reads_on_until_a_row_older_than_the_cursor_s() {
         row(1103, 4, 20_261_111_000_098),
     ];
     let fake = Fake::by_path(vec![
+        ("/series", series()),
         ("page=1", rows(&newer)),
         ("page=2", rows(&older)),
-        ("/series", series()),
     ]);
     let medusa = held(&fake);
     let after = heard(&medusa)

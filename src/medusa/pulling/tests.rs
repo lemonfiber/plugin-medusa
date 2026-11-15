@@ -782,3 +782,13 @@ async fn nzbhydra2_already_held_is_not_added_twice_and_takes_the_key_it_answers_
         .is_ok());
     assert_eq!(level.requests().len(), 1);
 }
+
+#[tokio::test]
+async fn reading_its_indexers_again_is_unsupported_and_nothing_is_asked() {
+    let fake = Fake::silent();
+    assert_eq!(
+        why(medusa(&fake).pull().await),
+        so(unsupported(super::NO_PULL))
+    );
+    assert!(fake.requests().is_empty());
+}

@@ -3,8 +3,8 @@ use lemonfiber_adapter_kit::endpoint::form_encoded;
 use lemonfiber_ports::http::Method;
 use lemonfiber_ports::media::{Format, Kind, TitleKind};
 use lemonfiber_ports::service::{
-    AddPlan, Added, Catalogue, CatalogueEntry, Failure, Maintenance, MusicQuality, QualityReleases,
-    ReleaseProbe,
+    AddPlan, Added, Catalogue, CatalogueEntry, CutoffUnmet, Failure, Maintenance, MusicQuality,
+    QualityReleases, ReleaseProbe,
 };
 use serde::Deserialize;
 use serde_json::{json, Value};
@@ -242,7 +242,7 @@ impl Catalogue for Medusa {
 
 #[async_trait]
 impl Maintenance for Medusa {
-    async fn search_upgrades(&self, kind: Kind) -> Result<(), Failure> {
+    async fn search_upgrades(&self, kind: TitleKind) -> Result<(), Failure> {
         Self::filing(kind)?;
         for series in self.series().await? {
             if series.config.paused {
@@ -260,7 +260,15 @@ impl Maintenance for Medusa {
             .await?;
         Ok(!wanted.is_empty())
     }
+
+    async fn cutoff_unmet(&self, _kind: TitleKind) -> Result<CutoffUnmet, Failure> {
+        Err(unsupported(NO_CUTOFF))
+    }
 }
+
+/// Why Medusa is not asked what it holds below its quality cutoff.
+const NO_CUTOFF: &str =
+    "Medusa answers no list of the episodes it holds below the quality it prefers for them";
 
 #[async_trait]
 impl QualityReleases for Medusa {
