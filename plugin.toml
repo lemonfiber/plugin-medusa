@@ -1,4 +1,4 @@
-#:schema https://raw.githubusercontent.com/lemonfiber/lemonfiber/2fee5cf8935ee541c8e6fee4e85d8b00ae2611e6/contract/plugin-manifest.schema.json
+#:schema https://raw.githubusercontent.com/lemonfiber/lemonfiber/9de49da3b6378475a2147bb388577b6370d8ad95/contract/plugin-manifest.schema.json
 schema_version = 1
 
 [plugin]
