@@ -51,6 +51,13 @@ impl Slot {
             .find(|slot| slot.id() == id)
     }
 
+    const fn section(self) -> &'static str {
+        match self {
+            Self::Nzb => "nzb",
+            Self::Torrent => "torrents",
+        }
+    }
+
     const fn field(self) -> &'static str {
         match self {
             Self::Nzb => "category",
@@ -399,6 +406,14 @@ impl Client for Medusa {
             }
         };
         self.configure(&patch).await
+    }
+
+    async fn forget_download_client(&self, id: &str) -> Result<(), Failure> {
+        let Some(slot) = Slot::named(id) else {
+            return Ok(());
+        };
+        self.configure(&json!({ "clients": { (slot.section()): { "enabled": false } } }))
+            .await
     }
 
     async fn test_download_clients(&self) -> Result<Vec<ClientProbe>, Failure> {
