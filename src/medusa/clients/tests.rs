@@ -330,6 +330,25 @@ async fn a_client_is_updated_in_its_own_slot_and_refused_in_another() {
 }
 
 #[tokio::test]
+async fn a_client_is_forgotten_by_switching_its_slot_off() {
+    for (id, section) in [("nzb", "nzb"), ("torrent", "torrents")] {
+        let fake = echoing();
+        let _ = medusa(&fake).forget_download_client(id).await;
+        assert_eq!(
+            asked(&fake),
+            [(
+                Method::Patch,
+                "/api/v2/config/main".to_owned(),
+                Some(json!({ "clients": { (section): { "enabled": false } } }))
+            )]
+        );
+    }
+    let fake = echoing();
+    assert!(medusa(&fake).forget_download_client("0").await.is_ok());
+    assert!(fake.requests().is_empty());
+}
+
+#[tokio::test]
 async fn the_category_of_a_torrent_client_is_set_as_its_label() {
     let fake = echoing();
     let _ = medusa(&fake)
