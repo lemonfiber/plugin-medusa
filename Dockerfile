@@ -4,7 +4,7 @@
 FROM rust:1.99.1-alpine3.22@sha256:731f64e16c12af70970d9a3655eecb1eecab4898352f09688a8e5ca2ab8b77c5 AS build
 RUN apk add --no-cache musl-dev
 WORKDIR /src
-COPY Cargo.toml Cargo.lock ./
+COPY Cargo.toml Cargo.lock build.rs plugin.toml ./
 COPY src ./src
 RUN cargo build --release --locked --bin medusa-adapter && cp target/release/medusa-adapter /medusa-adapter
 

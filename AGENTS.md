@@ -91,8 +91,9 @@ history and the state its download handler reads from each client.
 - **The core's crates move with the train.** The `rev` in `Cargo.toml` is the
   core commit `targets.toml` names, the same for every `lemonfiber-*` crate.
 - **Moving Medusa's digest** means recording every response again against the
-  new image in the same change, moving `RELEASE` and `DIGEST` in
-  `src/adapter.rs` with it, and committing the `proofs.json` the checks write.
+  new image in the same change, moving its `tag` with it (`build.rs` reads
+  `RELEASE` and `DIGEST` from `plugin.toml`, their one home), and committing the
+  `proofs.json` the checks write.
 
 ## Checks
 
