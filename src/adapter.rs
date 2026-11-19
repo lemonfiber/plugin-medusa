@@ -46,11 +46,7 @@ pub const API_KEY: &str = "api_key";
 /// The upstream this adapter fronts, as its project names itself.
 pub const UPSTREAM: &str = "Medusa";
 
-/// The Medusa release this adapter's recordings were taken from.
-pub const RELEASE: &str = "v1.0.27-ls297";
-
-/// The digest of the image that release's recordings were taken from.
-pub const DIGEST: &str = "sha256:aad89df58a047bab3521a695f0508f2e89fc9ba1f1196866dc8e9a810fc3ae5d";
+include!(concat!(env!("OUT_DIR"), "/fronted.rs"));
 
 /// What this adapter says it is: the contracts it speaks and the release it supports.
 #[must_use]
