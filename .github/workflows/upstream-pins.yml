@@ -1,0 +1,20 @@
+# Move each upstream image plugin.toml runs to the newest release of its major, one
+# rolling pull request per image, through spec's reusable `upstream-pins` (REPO-R98).
+name: upstream-pins
+on:
+  schedule:
+    - cron: "30 9 * * 5"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: upstream-pins
+  cancel-in-progress: false
+
+jobs:
+  pins:
+    permissions:
+      contents: read
+    uses: lemonfiber/spec/.github/workflows/upstream-pins.yml@4a428835255fa07552b72f86d149788faa850875 # v1.0.170
+    secrets:
+      RELEASE_APP_KEY: ${{ secrets.RELEASE_APP_KEY }}
