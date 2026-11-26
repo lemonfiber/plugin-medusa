@@ -15,6 +15,6 @@ jobs:
   pins:
     permissions:
       contents: read
-    uses: lemonfiber/spec/.github/workflows/upstream-pins.yml@4a428835255fa07552b72f86d149788faa850875 # v1.0.170
+    uses: lemonfiber/spec/.github/workflows/upstream-pins.yml@b74e6b8ed81d7d0b1adced22ab4b8b3db2a95615 # v1.0.173
     secrets:
       RELEASE_APP_KEY: ${{ secrets.RELEASE_APP_KEY }}
