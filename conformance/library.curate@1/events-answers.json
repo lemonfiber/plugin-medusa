@@ -1,19 +1,10 @@
 {
-  "recorded_from": "lscr.io/linuxserver/medusa@sha256:aad89df58a047bab3521a695f0508f2e89fc9ba1f1196866dc8e9a810fc3ae5d",
+  "recorded_from": "lscr.io/linuxserver/medusa@sha256:b1fbd7a9eb699eed4873b9d8325bbff2981d673e26935093c0f8a4c12dca9de0",
   "note": "Medusa's notifiers post only to fixed services' addresses, so the adapter reads Medusa's history every interval it is asked.",
-  "request": {
-    "method": "POST",
-    "path": "/lemonfiber/library.curate/v1/events",
-    "accept": "application/json"
-  },
+  "request": {"method": "POST", "path": "/lemonfiber/library.curate/v1/events", "accept": "application/json"},
   "response": {
     "status": 200,
-    "headers": {
-      "content-type": "application/json"
-    },
-    "json": {
-      "hearing": "poll",
-      "every": 60
-    }
+    "headers": {"content-type": "application/json"},
+    "json": {"every": 60, "hearing": "poll"}
   }
 }

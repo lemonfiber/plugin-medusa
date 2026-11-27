@@ -1,5 +1,5 @@
 {
-  "recorded_from": "lscr.io/linuxserver/medusa@sha256:aad89df58a047bab3521a695f0508f2e89fc9ba1f1196866dc8e9a810fc3ae5d",
+  "recorded_from": "lscr.io/linuxserver/medusa@sha256:b1fbd7a9eb699eed4873b9d8325bbff2981d673e26935093c0f8a4c12dca9de0",
   "note": "Medusa cannot be asked to read its indexers again: answered unsupported, and nothing was asked of Medusa.",
   "request": {"method": "POST", "path": "/lemonfiber/indexer.pull/v1/pull", "accept": "application/json"},
   "response": {
