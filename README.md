@@ -49,6 +49,12 @@ numbers by year, as it numbers many daily shows and long-running anime, offers
 seasons Medusa does not hold. A series TVmaze does not know cannot be requested
 with it.
 
+A request for a series Medusa does not hold adds it, then reads the seasons
+Medusa itself holds of it. Where none of the seasons asked for is one of them,
+the request is refused, naming the seasons asked for and those Medusa holds, and
+the series is taken out of Medusa again, its folder and files left where they
+are. Where some are, Medusa wants those it holds and nothing of the rest.
+
 ## How it tells lemonfiber what happened
 
 Asked by lemonfiber's `events`, the adapter tells it each episode Medusa imports

@@ -201,6 +201,53 @@ impl Medusa {
         Ok(series)
     }
 
+    async fn added_holding(&self, request: &TitleRequest) -> Result<Series, Failure> {
+        let series = self.added(request).await?;
+        let parts = self.episodes(&series.id.slug, None).await?;
+        if request.seasons.is_empty()
+            || parts
+                .iter()
+                .any(|part| request.seasons.contains(&part.season))
+        {
+            return Ok(series);
+        }
+        self.unfollowed(&series, request.reference).await?;
+        let asked: Vec<String> = request.seasons.iter().map(u32::to_string).collect();
+        let held: BTreeSet<u32> = parts.iter().map(|part| part.season).collect();
+        let held: Vec<String> = held.iter().map(u32::to_string).collect();
+        Err(self.endpoint.refused(&format!(
+            "Medusa holds none of the seasons asked for ({}) of the series with TheTVDB id {}, \
+             holding {}, so the series was taken out again",
+            asked.join(", "),
+            request.reference,
+            if held.is_empty() {
+                "no season".to_owned()
+            } else {
+                format!("seasons {}", held.join(", "))
+            }
+        )))
+    }
+
+    async fn unfollowed(&self, series: &Series, tvdb: i64) -> Result<(), Failure> {
+        let response = self
+            .ask(
+                Method::Delete,
+                &format!("{SERIES}/{}", series.id.slug),
+                None,
+            )
+            .await?;
+        self.endpoint.expect_success(&response)?;
+        for _ in 0..ARRIVAL_ROUNDS {
+            if self.followed_as(tvdb).await?.is_none() {
+                return Ok(());
+            }
+            tokio::time::sleep(self.pause).await;
+        }
+        Err(self.endpoint.refused(&format!(
+            "Medusa had not finished taking out the series with TheTVDB id {tvdb} in time"
+        )))
+    }
+
     async fn watching(&self, series: &Series) -> Result<(), Failure> {
         if series.config.paused {
             self.done(
@@ -295,7 +342,7 @@ impl Fulfilling for Medusa {
                 self.watching(&series).await?;
                 series
             }
-            None => self.added(request).await?,
+            None => self.added_holding(request).await?,
         };
         self.want(&series, &request.seasons).await?;
         if request.search {
