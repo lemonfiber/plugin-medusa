@@ -321,6 +321,203 @@ async fn a_series_medusa_is_still_adding_is_refused_and_nothing_more_is_written(
     assert_eq!(writes(&fake).len(), 1);
 }
 
+const DAILY: i64 = 71256;
+
+const ONE_PIECE: i64 = 81797;
+
+const HEIST: i64 = 327_417;
+
+fn show(tvdb: i64, title: &str, year: u32) -> Value {
+    json!({ "id": { "tvdb": tvdb, "slug": format!("tvdb{tvdb}") }, "title": title, "year": { "start": year }, "config": { "paused": false, "defaultEpisodeStatus": "Skipped" } })
+}
+
+fn skipped_in(seasons: &[u32]) -> Value {
+    Value::Array(
+        seasons
+            .iter()
+            .map(|season| episode(*season, 1, "Skipped", ""))
+            .collect(),
+    )
+}
+
+struct Show {
+    series: Value,
+    detailed: &'static str,
+    episodes: &'static str,
+    one: &'static str,
+}
+
+fn daily() -> Show {
+    Show {
+        series: show(DAILY, "The Daily Show", 1996),
+        detailed: "/series/tvdb71256?detailed=true",
+        episodes: "/series/tvdb71256/episodes",
+        one: "/series/tvdb71256",
+    }
+}
+
+fn one_piece() -> Show {
+    Show {
+        series: show(ONE_PIECE, "One Piece", 1999),
+        detailed: "/series/tvdb81797?detailed=true",
+        episodes: "/series/tvdb81797/episodes",
+        one: "/series/tvdb81797",
+    }
+}
+
+fn heist() -> Show {
+    Show {
+        series: show(HEIST, "Money Heist", 2017),
+        detailed: "/series/tvdb327417?detailed=true",
+        episodes: "/series/tvdb327417/episodes",
+        one: "/series/tvdb327417",
+    }
+}
+
+fn added_holding(
+    added: &Show,
+    seasons: &[u32],
+    taken_out: Answer,
+    after: &[Value],
+) -> std::sync::Arc<Fake> {
+    let mut routes = settled();
+    let mut listed = vec![json(200, &json!([])), json(200, &json!([&added.series]))];
+    listed.extend(after.iter().map(|one| json(200, one)));
+    routes.extend([
+        (Method::Get, added.detailed, vec![busy(false)]),
+        (
+            Method::Get,
+            added.episodes,
+            vec![json(200, &skipped_in(seasons))],
+        ),
+        (
+            Method::Patch,
+            added.episodes,
+            vec![json(207, &json!({ "s03e01": { "status": 200 } }))],
+        ),
+        (Method::Patch, added.one, vec![json(200, &json!({}))]),
+        (Method::Delete, added.one, vec![taken_out]),
+        (Method::Post, "/series", vec![json(201, &json!({}))]),
+        (Method::Get, "/series?", listed),
+    ]);
+    Fake::by_route_in_turn(routes)
+}
+
+fn taken_out() -> Answer {
+    Answer::reply(204, "")
+}
+
+#[tokio::test]
+async fn a_series_numbered_by_year_elsewhere_is_refused_and_taken_out_again() {
+    let fake = added_holding(&daily(), &[1, 2, 3], taken_out(), &[json!([])]);
+    assert_eq!(
+        why(medusa(&fake)
+            .request(Kind::Tv, &asking(DAILY, vec![2015, 2016], false))
+            .await),
+        so(refused(
+            "Medusa holds none of the seasons asked for (2015, 2016) of the series with TheTVDB \
+             id 71256, holding seasons 1, 2, 3, so the series was taken out again"
+        ))
+    );
+    let written: Vec<(Method, String)> = writes(&fake)
+        .into_iter()
+        .map(|(method, path, _)| (method, path))
+        .collect();
+    assert_eq!(
+        written,
+        [
+            (Method::Post, "/api/v2/series".to_owned()),
+            (Method::Patch, "/api/v2/series/tvdb71256".to_owned()),
+            (Method::Delete, "/api/v2/series/tvdb71256".to_owned()),
+        ]
+    );
+}
+
+#[tokio::test]
+async fn an_anime_numbered_by_year_elsewhere_is_refused_and_its_files_are_never_asked_to_go() {
+    let fake = added_holding(&one_piece(), &[0, 1, 23], taken_out(), &[json!([])]);
+    let refusal = why(medusa(&fake)
+        .request(Kind::Tv, &asking(ONE_PIECE, vec![1999], true))
+        .await);
+    assert_eq!(
+        refusal,
+        so(refused(
+            "Medusa holds none of the seasons asked for (1999) of the series with TheTVDB id \
+             81797, holding seasons 0, 1, 23, so the series was taken out again"
+        ))
+    );
+    assert!(writes(&fake)
+        .iter()
+        .all(|(method, path, _)| *method != Method::Put && !path.contains("remove-files")));
+}
+
+#[tokio::test]
+async fn a_series_holding_some_of_the_seasons_asked_wants_those_it_holds() {
+    let fake = added_holding(&heist(), &[1, 2, 3], taken_out(), &[]);
+    assert!(medusa(&fake)
+        .request(Kind::Tv, &asking(HEIST, vec![3, 4, 5], false))
+        .await
+        .is_ok());
+    let written = writes(&fake);
+    assert!(written.contains(&(
+        Method::Patch,
+        "/api/v2/series/tvdb327417/episodes".to_owned(),
+        Some(json!({ "s03e01": { "status": 3 } }))
+    )));
+    assert!(written
+        .iter()
+        .all(|(method, _, _)| *method != Method::Delete));
+}
+
+#[tokio::test]
+async fn a_series_holding_no_season_is_refused_saying_so() {
+    let fake = added_holding(&daily(), &[], taken_out(), &[json!([])]);
+    assert_eq!(
+        why(medusa(&fake)
+            .request(Kind::Tv, &asking(DAILY, vec![1], false))
+            .await),
+        so(refused(
+            "Medusa holds none of the seasons asked for (1) of the series with TheTVDB id 71256, \
+             holding no season, so the series was taken out again"
+        ))
+    );
+}
+
+#[tokio::test]
+async fn a_series_asked_for_no_season_is_added_and_kept() {
+    let fake = added_holding(&daily(), &[1], taken_out(), &[]);
+    assert!(medusa(&fake)
+        .request(Kind::Tv, &asking(DAILY, Vec::new(), false))
+        .await
+        .is_ok());
+    assert!(writes(&fake)
+        .iter()
+        .all(|(method, _, _)| *method != Method::Delete));
+}
+
+#[tokio::test]
+async fn a_series_medusa_will_not_take_out_again_is_a_failure() {
+    let fake = added_holding(&daily(), &[1], json(409, &json!({})), &[]);
+    assert!(medusa(&fake)
+        .request(Kind::Tv, &asking(DAILY, vec![2015], false))
+        .await
+        .is_err());
+}
+
+#[tokio::test]
+async fn a_series_medusa_is_still_taking_out_is_refused_saying_so() {
+    let daily_held = daily().series;
+    let fake = added_holding(&daily(), &[1], taken_out(), &[json!([daily_held])]);
+    assert_eq!(
+        why(medusa(&fake)
+            .request(Kind::Tv, &asking(DAILY, vec![2015], false))
+            .await),
+        so(refused(
+            "Medusa had not finished taking out the series with TheTVDB id 71256 in time"
+        ))
+    );
+}
+
 fn held(paused: bool, saved: &Value) -> std::sync::Arc<Fake> {
     let mut routes = settled();
     routes.extend([
