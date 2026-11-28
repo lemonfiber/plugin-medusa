@@ -19,9 +19,9 @@ pub const IMPORT_STUCK_AFTER: &str = "IMPORT_STUCK_AFTER_MINUTES";
 
 const MINUTE: u64 = 60;
 
-/// The variable of the adapter's environment saying whether TheTVDB is asked for a series
-/// Medusa does not hold: `off`, `on` under a key, or `on-with-pin` under a key and a
-/// subscriber PIN.
+/// The variable of the adapter's environment saying where a series Medusa does not hold is
+/// looked up: nowhere where it is `off`, TVmaze where it is `tvmaze`, and TheTVDB where it
+/// is `on`, under a key, or `on-with-pin`, under a key and a subscriber PIN.
 pub const THETVDB_LOOKUP: &str = "THETVDB_LOOKUP";
 
 /// The variable of the adapter's environment holding the operator's TheTVDB key.
@@ -32,6 +32,8 @@ pub const THETVDB_KEY: &str = "THETVDB_KEY";
 pub const THETVDB_PIN: &str = "THETVDB_PIN";
 
 const LOOKUP_OFF: &str = "off";
+
+const LOOKUP_TVMAZE: &str = "tvmaze";
 
 const LOOKUP_ON: &str = "on";
 
@@ -80,18 +82,29 @@ pub fn patience(minutes: Option<&str>) -> Result<Option<Duration>, String> {
     Ok((minutes > 0).then(|| Duration::from_secs(minutes.saturating_mul(MINUTE))))
 }
 
-/// How TheTVDB is signed in to, as `lookup`, `key` and `pin` say, or nothing where the
-/// lookup is off, which it is where `lookup` says nothing.
+/// Where a series Medusa does not hold is looked up.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Looking {
+    /// Nowhere: a series Medusa does not hold is none.
+    Off,
+    /// TVmaze, which takes no key.
+    TvMaze,
+    /// TheTVDB, signed in to as this says.
+    TheTvdb(SignIn),
+}
+
+/// Where a series Medusa does not hold is looked up, as `lookup`, `key` and `pin` say:
+/// nowhere where `lookup` says nothing.
 ///
 /// # Errors
 ///
-/// Where `lookup` names no state the setting takes, or the lookup is on and the key, or
-/// the PIN it is on with, is missing.
-pub fn thetvdb(
+/// Where `lookup` names no state the setting takes, or TheTVDB is looked up in and the
+/// key, or the PIN it is looked up with, is missing.
+pub fn looking(
     lookup: Option<&str>,
     key: Option<&str>,
     pin: Option<&str>,
-) -> Result<Option<SignIn>, String> {
+) -> Result<Looking, String> {
     let given = |value: Option<&str>, named: &str| {
         value
             .map(str::trim)
@@ -100,17 +113,18 @@ pub fn thetvdb(
             .ok_or_else(|| format!("{THETVDB_LOOKUP} is on, and {named} holds nothing"))
     };
     match lookup.map_or(LOOKUP_OFF, str::trim) {
-        LOOKUP_OFF => Ok(None),
-        LOOKUP_ON => Ok(Some(SignIn {
+        LOOKUP_OFF => Ok(Looking::Off),
+        LOOKUP_TVMAZE => Ok(Looking::TvMaze),
+        LOOKUP_ON => Ok(Looking::TheTvdb(SignIn {
             key: given(key, THETVDB_KEY)?,
             pin: None,
         })),
-        LOOKUP_ON_WITH_PIN => Ok(Some(SignIn {
+        LOOKUP_ON_WITH_PIN => Ok(Looking::TheTvdb(SignIn {
             key: given(key, THETVDB_KEY)?,
             pin: Some(given(pin, THETVDB_PIN)?),
         })),
         other => Err(format!(
-            "{THETVDB_LOOKUP} is {other:?}, not {LOOKUP_OFF}, {LOOKUP_ON} or {LOOKUP_ON_WITH_PIN}"
+            "{THETVDB_LOOKUP} is {other:?}, not {LOOKUP_OFF}, {LOOKUP_TVMAZE}, {LOOKUP_ON} or {LOOKUP_ON_WITH_PIN}"
         )),
     }
 }

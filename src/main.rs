@@ -7,8 +7,11 @@ use lemonfiber_adapter_kit::credential::Upstream;
 use lemonfiber_adapter_kit::settings::{asked, Asked, Settings};
 use lemonfiber_adapter_kit::web::Web;
 use lemonfiber_contract::adapter::{about_path, UPSTREAM_PASSWORD, UPSTREAM_USERNAME};
+use medusa_adapter::adapter::Looking;
+use medusa_adapter::lookup::Lookup;
 use medusa_adapter::medusa::Medusa;
 use medusa_adapter::thetvdb::TheTvdb;
+use medusa_adapter::tvmaze::TvMaze;
 
 #[tokio::main]
 async fn main() -> ExitCode {
@@ -38,19 +41,22 @@ async fn serve(settings: &Settings) -> Result<(), String> {
             .as_deref(),
     )?;
     let env = |name: &str| std::env::var(name).ok();
-    let sign_in = medusa_adapter::adapter::thetvdb(
+    let looking = medusa_adapter::adapter::looking(
         env(medusa_adapter::adapter::THETVDB_LOOKUP).as_deref(),
         env(medusa_adapter::adapter::THETVDB_KEY).as_deref(),
         env(medusa_adapter::adapter::THETVDB_PIN).as_deref(),
     )?;
     let web = Arc::new(Web::new().map_err(|why| format!("no HTTP client could be made: {why}"))?);
-    let lookup = sign_in.map(|sign_in| {
-        Arc::new(TheTvdb::new(
-            Arc::clone(&web) as Arc<dyn lemonfiber_ports::http::Http>,
+    let http = Arc::clone(&web) as Arc<dyn lemonfiber_ports::http::Http>;
+    let lookup: Option<Arc<dyn Lookup>> = match looking {
+        Looking::Off => None,
+        Looking::TvMaze => Some(Arc::new(TvMaze::new(http, medusa_adapter::tvmaze::ADDRESS))),
+        Looking::TheTvdb(sign_in) => Some(Arc::new(TheTvdb::new(
+            http,
             medusa_adapter::thetvdb::ADDRESS,
             sign_in,
-        ))
-    });
+        ))),
+    };
     let medusa = Medusa::new(
         web,
         settings.upstream.clone(),

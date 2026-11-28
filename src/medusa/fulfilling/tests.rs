@@ -621,3 +621,46 @@ async fn with_the_lookup_on_a_series_it_holds_is_answered_from_medusa_alone() {
         .iter()
         .any(|(_, url, _)| url.contains("thetvdb")));
 }
+
+#[tokio::test]
+async fn with_tvmaze_looked_up_in_a_series_it_does_not_hold_is_catalogued_from_tvmaze_alone() {
+    let fake = Fake::by_route_in_turn(vec![
+        (
+            Method::Get,
+            "/lookup/shows?thetvdb=81189",
+            vec![Answer::Headed {
+                status: 301,
+                headers: vec![(
+                    "Location".to_owned(),
+                    "https://api.tvmaze.com/shows/169".to_owned(),
+                )],
+                body: String::new(),
+            }],
+        ),
+        (
+            Method::Get,
+            "/shows/169?embed=episodes",
+            vec![json(
+                200,
+                &json!({ "name": "Breaking Bad", "premiered": "2008-01-20", "externals": { "thetvdb": BAD }, "_embedded": { "episodes": [{ "season": 1, "number": 1 }] } }),
+            )],
+        ),
+        (Method::Get, "/series?", vec![json(200, &json!([]))]),
+    ]);
+    let medusa = medusa(&fake).looking_up(Some(std::sync::Arc::new(crate::tvmaze::TvMaze::new(
+        fake.clone(),
+        crate::tvmaze::ADDRESS,
+    ))));
+    assert_eq!(
+        medusa
+            .catalogued(Kind::Tv, BAD)
+            .await
+            .ok()
+            .flatten()
+            .map(|title| (title.title, title.year, title.seasons.len())),
+        Some(("Breaking Bad".to_owned(), Some(2008), 1))
+    );
+    assert!(!asked(&fake)
+        .iter()
+        .any(|(_, url, _)| url.contains("thetvdb.com")));
+}

@@ -36,9 +36,18 @@ request operations of `library.curate` and `quality_profiles`, `root_folders` an
 Medusa looks up a series it does not hold by name alone, never by its TheTVDB
 id, so by default `catalogued` answers only the series Medusa holds, and a
 household's request reaches Medusa only for a series it already holds. With
-`medusa:thetvdb-lookup` on, the adapter asks TheTVDB itself for the name, year
-and seasons of a series Medusa does not hold, under your own TheTVDB API key,
-and that series can be requested too. It never uses the key Medusa ships with.
+`medusa:thetvdb-lookup` set to `tvmaze`, the adapter asks
+[TVmaze](https://www.tvmaze.com)'s public API, which takes no key, for the name,
+year and seasons of a series Medusa does not hold, by its TheTVDB id; set to
+`on`, it asks TheTVDB itself, under your own TheTVDB API key. Either way that
+series can be requested too. It never uses the key Medusa ships with.
+
+TVmaze numbers seasons as its own catalogue does. Where that differs from
+TheTVDB's, which Medusa follows, a household asks for the seasons TVmaze names:
+TVmaze has no season 0, so specials cannot be asked for, and a series TVmaze
+numbers by year, as it numbers many daily shows and long-running anime, offers
+seasons Medusa does not hold. A series TVmaze does not know cannot be requested
+with it.
 
 ## How it tells lemonfiber what happened
 
@@ -66,8 +75,8 @@ The first ask sends nothing older than that moment, and a stop drops the cursor.
 | Setting | Default | What it decides |
 | --- | --- | --- |
 | `medusa:import-stuck-after` | `60` | The minutes a finished download may wait for Medusa to import it before the adapter reports it stuck. `0` reports none |
-| `medusa:thetvdb-lookup` | `off` | Whether the adapter asks TheTVDB for a series Medusa does not hold: `off`, `on` under your key, or `on-with-pin` under your key and your subscriber PIN |
-| `medusa:thetvdb-key` | none | Your TheTVDB API key, asked for while the lookup is on |
+| `medusa:thetvdb-lookup` | `off` | Where the adapter looks up a series Medusa does not hold, by its TheTVDB id: `off` nowhere, `tvmaze` on TVmaze with no key, `on` on TheTVDB under your key, or `on-with-pin` on TheTVDB under your key and your subscriber PIN |
+| `medusa:thetvdb-key` | none | Your TheTVDB API key, asked for while the lookup is `on` or `on-with-pin` |
 | `medusa:thetvdb-pin` | none | Your TheTVDB subscriber PIN, asked for while the lookup is `on-with-pin` |
 
 `lemonfiber config set medusa:import-stuck-after <minutes>` changes it. A stuck
@@ -80,13 +89,22 @@ is named. The default is twelve passes of Medusa's download handler, which the
 adapter runs every five minutes: every import the rig saw began in the same pass
 that read its client as finished.
 
-The TheTVDB lookup is the one request the adapter makes beyond this machine, and
+The lookup is the one request the adapter makes beyond this machine, and
 lemonfiber lists it with what the stack's services reach. It is off until you
-switch it on, and while it is off nothing goes to TheTVDB. Switched on, it signs
-in to `api4.thetvdb.com` with your key, and your PIN where your key needs one,
-and reads one series' episodes each time the request service looks up a series
-Medusa does not hold. Switching it off again means a series Medusa does not hold
-cannot be requested.
+switch it on, and while it is off nothing goes to TVmaze or TheTVDB. Each time
+the request service looks up a series Medusa does not hold, the adapter, set to
+`tvmaze`, asks `api.tvmaze.com` which show has that TheTVDB id and reads that
+show and its episodes, sending no key, no account and nothing else about you or
+your library; it follows no redirect, reads only a show at `api.tvmaze.com`, and
+asks again after two seconds, at most twice, while TVmaze answers that it is
+asked too often. Set to `on` or `on-with-pin`, it signs in to `api4.thetvdb.com`
+with your key, and your PIN where your key needs one, and reads that series'
+episodes. Switching it off again means a series Medusa does not hold cannot be
+requested.
+
+The series information TVmaze answers is TVmaze's, under
+[CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/), credited to
+[TVmaze](https://www.tvmaze.com).
 
 ## What Medusa cannot do
 
