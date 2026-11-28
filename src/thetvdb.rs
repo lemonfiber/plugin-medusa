@@ -4,11 +4,14 @@
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex, PoisonError};
 
+use async_trait::async_trait;
 use lemonfiber_adapter_kit::endpoint::Endpoint;
 use lemonfiber_ports::http::{Http, Method, Request, Response, JSON};
-use lemonfiber_ports::service::{CuratedSeason, CuratedTitle, Failure};
+use lemonfiber_ports::service::{CuratedTitle, Failure};
 use serde::Deserialize;
 use serde_json::json;
+
+use crate::lookup::{unheld, Lookup};
 
 /// Where TheTVDB's API answers.
 pub const ADDRESS: &str = "https://api4.thetvdb.com/v4";
@@ -29,8 +32,6 @@ const PAGES: u32 = 20;
 const NOT_FOUND: u16 = 404;
 
 const UNAUTHORISED: u16 = 401;
-
-const YEAR_DIGITS: usize = 4;
 
 const WITHHELD: &str = "withheld";
 
@@ -179,15 +180,11 @@ impl TheTvdb {
         )?;
         Ok(Some(paged.data))
     }
+}
 
-    /// The series TheTVDB knows as `id`, with the episodes of each of its seasons, or none
-    /// where it knows none.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`Failure`] when TheTVDB is unreachable, refuses the key, or answers in a
-    /// shape it does not read.
-    pub async fn series(&self, id: i64) -> Result<Option<CuratedTitle>, Failure> {
+#[async_trait]
+impl Lookup for TheTvdb {
+    async fn series(&self, id: i64) -> Result<Option<CuratedTitle>, Failure> {
         let Some(first) = self.page(id, 0).await? else {
             return Ok(None);
         };
@@ -204,28 +201,12 @@ impl TheTvdb {
             counted(&mut seasons, &next);
             full = next.episodes.len() >= PAGE;
         }
-        Ok(Some(CuratedTitle {
-            reference: id,
-            id: None,
-            title: first.series.name,
-            year: first
-                .series
-                .year
-                .as_deref()
-                .and_then(|year| year.get(..YEAR_DIGITS))
-                .and_then(|year| year.parse().ok()),
-            monitored: false,
-            files: 0,
-            seasons: seasons
-                .into_iter()
-                .map(|(number, episodes)| CuratedSeason {
-                    number,
-                    monitored: false,
-                    files: 0,
-                    episodes,
-                })
-                .collect(),
-        }))
+        Ok(Some(unheld(
+            id,
+            first.series.name,
+            first.series.year.as_deref(),
+            seasons,
+        )))
     }
 }
 

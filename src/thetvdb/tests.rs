@@ -6,6 +6,7 @@ use lemonfiber_ports::service::{CuratedSeason, CuratedTitle, Failure};
 use serde_json::{json, Value};
 
 use super::{SignIn, TheTvdb};
+use crate::lookup::Lookup as _;
 
 const BASE: &str = "https://api4.thetvdb.com/v4";
 

@@ -71,7 +71,7 @@ pub struct Medusa {
     pause: Duration,
     patience: Option<Duration>,
     pending: Mutex<BTreeMap<String, tokio::time::Instant>>,
-    lookup: Option<Arc<crate::thetvdb::TheTvdb>>,
+    lookup: Option<Arc<dyn crate::lookup::Lookup>>,
     recounter: OnceLock<Recounter>,
 }
 
@@ -102,7 +102,7 @@ impl Medusa {
     /// The same Medusa, asking `lookup` for a series it does not hold, or nothing where
     /// there is none.
     #[must_use]
-    pub fn looking_up(mut self, lookup: Option<Arc<crate::thetvdb::TheTvdb>>) -> Self {
+    pub fn looking_up(mut self, lookup: Option<Arc<dyn crate::lookup::Lookup>>) -> Self {
         self.lookup = lookup;
         self
     }

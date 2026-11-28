@@ -64,11 +64,17 @@ history and the state its download handler reads from each client.
   series is named by its TheTVDB id, which is also the adapter's id for it
   (`ARCH-R385`). `catalogued` answers a series Medusa holds, and otherwise none,
   since Medusa's API looks a series up by name alone, unless
-  `medusa:thetvdb-lookup` is on: then `src/thetvdb.rs` asks TheTVDB's v4 API under
-  the operator's own key, and their PIN where the setting says `on-with-pin`, for
-  the series' name, year and the episodes of each season. That is the adapter's
-  one request beyond the machine, declared in its `reaches` and `asks_for`; it is
-  off by default, and the key Medusa ships with is never used. `held_title` never
+  `medusa:thetvdb-lookup` names a lookup (`src/lookup.rs`): `tvmaze` has
+  `src/tvmaze.rs` ask TVmaze's public API, with no key, which show has the TheTVDB
+  id and then that show with its episodes, counting each season's numbered ones;
+  `on` and `on-with-pin` have `src/thetvdb.rs` ask TheTVDB's v4 API under the
+  operator's own key, and their PIN where the setting says `on-with-pin`, for the
+  series' name, year and the episodes of each season. TVmaze's lookup follows no
+  redirect: it reads only a show its lookup names at `api.tvmaze.com`, refuses one
+  naming another TheTVDB id or no name, and asks again twice, two seconds apart,
+  while TVmaze answers `429`. That is the adapter's one request beyond the machine,
+  declared in its `reaches` and `asks_for`; it is off by default, and the key Medusa
+  ships with is never used. `held_title` never
   asks TheTVDB. `request` adds a series every episode skipped, waits for Medusa's
   show queue to finish adding it, sets what airs later to wanted or skipped as
   asked, and then wants every skipped, ignored or unaired episode of the seasons
